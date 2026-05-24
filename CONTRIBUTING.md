@@ -44,6 +44,27 @@ If you also have the integration tests cloned (in `NexusFFXIV/localTools/tests/`
 dotnet test ../localTools/tests/NexusKit.Modules.ExternalData.Tests
 ```
 
+## Cutting a testing build
+
+For changes that need real-world validation before going to all consumers (e.g. a Lodestone scraper change you want to verify against live Lodestone HTML before stable users get it), publish a **testing release** first:
+
+1. Land the work on `main` via the normal PR flow.
+2. From `main`, tag with a pre-release suffix:
+   ```powershell
+   git tag -a v0.2.0-rc.1 -m "v0.2.0-rc.1 — testing build for <reason>"
+   git push origin v0.2.0-rc.1
+   ```
+3. CI publishes pre-release NuGets. The GitHub Release is automatically marked **Pre-release** because the tag contains `-`.
+4. Consumer plugins can opt in by temporarily pinning the pre-release version, e.g.:
+   ```xml
+   <PackageReference Include="NexusKit.Modules.PlayerEnrichment" Version="0.2.0-rc.1" />
+   ```
+5. After validation, cut the stable version (`v0.2.0`) — no separate code change, just the tag. Consumers on floating `[0.1.0,)` automatically pick up `0.2.0`.
+
+Suffix conventions (descending stability): `-rc.N`, `-beta.N`, `-preview.N`.
+
+The PR does **not** need to know whether it will ship as testing or stable — that's a tag-time decision.
+
 ## Module boundaries
 
 Two architectural rules carry over from NexusKit and **must not** be broken:

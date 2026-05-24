@@ -58,3 +58,32 @@ git tag -a v0.2.1 -m "v0.2.1 — hotfix: <description>"
 git push origin v0.2.1
 # Open separate PR to merge the fix into main so v0.3.0 doesn't regress
 ```
+
+## Pre-release versions (testing builds)
+
+Same mechanic as in NexusKit — tag with a suffix containing `-` to publish a pre-release:
+
+```powershell
+git tag -a v0.2.0-rc.1 -m "v0.2.0-rc.1"
+git push origin v0.2.0-rc.1
+```
+
+NuGets land with the `-rc.1` suffix; the GitHub Release is automatically marked **Pre-release**. Consumers on floating `PackageReference` (`[0.1.0,)`) continue to pull stable versions; testers pin the pre-release explicitly.
+
+### Cross-repo testing cascade
+
+A typical end-to-end testing flow when a change spans NexusKit and the plugin:
+
+1. **NexusKit**: land + tag `v0.2.0-rc.1` → 7 pre-release NuGets in GHP
+2. **NexusKit.Modules** (this repo): pull main, adapt to the new NexusKit API, **temporarily pin** the upstream pre-release in your csprojs:
+   ```xml
+   <PackageReference Include="NexusKit.Core" Version="0.2.0-rc.1" />
+   ```
+   land via PR, tag `v0.2.0-rc.1` → 6 pre-release NuGets
+3. **PlayerNexusTracker**: pull, pin both upstream pre-releases, tag `v0.2.0-rc.1` → plugin pre-release lands in DalamudRepo's `DownloadLinkTesting` field, surfaced for testers who enabled the toggle in Dalamud Settings
+4. Tester feedback comes in
+5. **Promote to stable**: revert the pinned `Version="0.2.0-rc.1"` constraints back to floating `[0.1.0,)`, merge that revert, then tag all three repos with `v0.2.0` in the same order
+   - All consumers on floating refs now resolve to the new `0.2.0` stable
+   - Stable plugin lands in DalamudRepo's `DownloadLinkInstall` — every player gets the update
+
+If the cascade is too heavy for a small change (no NexusKit-side change needed), skip step 1 and tag only Modules + Plugin.
