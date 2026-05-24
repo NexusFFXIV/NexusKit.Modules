@@ -17,9 +17,12 @@ updates:
     open-pull-requests-limit: 5
     labels: ["dependencies", "nuget"]
     groups:
-      microsoft-extensions:
-        patterns: ["Microsoft.Extensions.*"]
-      nexuskit:
-        patterns: ["NexusKit.*"]
+      # Group NexusKit + Microsoft.Extensions together — NexusKit transitively
+      # pulls specific Microsoft.Extensions.* versions, so bumping them apart
+      # can produce NU1605 package-downgrade errors. Coordinated bumps avoid it.
+      microsoft-platform:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "NexusKit.*"
       external-libs:
         patterns: ["NetStone*", "HtmlAgilityPack*"]
