@@ -3,6 +3,10 @@
 **Reusable feature modules built on [NexusKit](https://github.com/NexusFFXIV/NexusKit).**
 
 [![CI](https://github.com/NexusFFXIV/NexusKit.Modules/actions/workflows/ci.yml/badge.svg)](https://github.com/NexusFFXIV/NexusKit.Modules/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/NexusFFXIV/NexusKit.Modules/actions/workflows/codeql.yml/badge.svg)](https://github.com/NexusFFXIV/NexusKit.Modules/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/NexusFFXIV/NexusKit.Modules?label=release&logo=github)](https://github.com/NexusFFXIV/NexusKit.Modules/releases)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![NexusKit](https://img.shields.io/badge/NexusKit-%E2%89%A50.1.0-9D5BFF)](https://github.com/NexusFFXIV/NexusKit)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 ## Overview
