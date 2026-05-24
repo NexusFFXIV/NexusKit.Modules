@@ -1,0 +1,82 @@
+name: Bug report
+description: A NexusKit.Modules package behaves incorrectly, crashes, or breaks consumers.
+title: "[Bug]: "
+labels: ["bug", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. NexusKit.Modules ships six packages — the more precise you are about which one is misbehaving, the faster we can fix it. Cross-module bugs (e.g. PlayerEnrichment + Lodestone interaction) are common, so list everything potentially involved.
+
+  - type: input
+    id: affected-packages
+    attributes:
+      label: Affected package(s)
+      description: |
+        Which NexusKit.Modules package(s)? One of: `InternalData`, `ExternalData`, `PlayerEnrichment`, `FfxivCollect`, `Lodestone`, `PluginBridge`. List all potentially involved.
+      placeholder: "e.g. NexusKit.Modules.Lodestone, NexusKit.Modules.PlayerEnrichment"
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version(s)
+      description: |
+        From your consumer's csproj / `Directory.Packages.props` / `dotnet list package`. If on floating `[X.Y.Z,)` paste what restore resolved.
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: nexuskit-version
+    attributes:
+      label: NexusKit version (optional)
+      description: "Underlying framework version. Useful if you suspect the bug is upstream."
+      placeholder: "e.g. 0.1.0"
+
+  - type: dropdown
+    id: consumer-context
+    attributes:
+      label: Consumer context
+      options:
+        - A Dalamud plugin I'm writing
+        - PlayerNexusTracker
+        - Something else (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, expected vs actual.
+      placeholder: |
+        1. Register `services.AddNexusKitLodestone()` with default settings
+        2. Call `client.GetCharacterAsync(lodestoneId, ct)` for a valid character
+        3. Expected: parsed CharacterSummary
+        4. Actual: NetStoneException "Unknown HTML layout"
+    validations:
+      required: true
+
+  - type: textarea
+    id: minimal-repro
+    attributes:
+      label: Minimal repro (code) (optional)
+      render: csharp
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / stack traces (optional)
+      render: shell
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched [existing issues](https://github.com/NexusFFXIV/NexusKit.Modules/issues?q=is%3Aissue) and didn't find a duplicate.
+          required: true
+        - label: I'm on a recent version (or have stated the version above).
+          required: true
