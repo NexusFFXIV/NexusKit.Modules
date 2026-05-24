@@ -28,6 +28,9 @@ public interface IPlayerChangeRecorder
     /// live-watcher path works).</param>
     /// <param name="newValue">New value, same formatting rules as oldValue.</param>
     /// <param name="detectedAt">UTC timestamp of the detection.</param>
+    /// <param name="ct">Co-operative cancellation. Implementations should
+    /// respect it but never let cancellation propagate back into the upsert
+    /// path — see the fire-and-forget remark on the interface.</param>
     Task RecordPlayerChangeAsync(
         ulong lodestoneId,
         PlayerChangeKind kind,
