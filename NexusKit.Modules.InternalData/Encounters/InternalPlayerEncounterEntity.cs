@@ -5,8 +5,7 @@ namespace NexusKit.Modules.InternalData.Encounters;
 /// Inserted on the first observation of that character in the encounter's
 /// territory; <see cref="LastSeenAt"/> is bumped on every subsequent
 /// visibility tick. Job / level are FROZEN at first sighting — if the
-/// player swaps jobs mid-encounter the row keeps the original snapshot,
-/// matching the PlayerTrack / PlayerNexus semantics.
+/// player swaps jobs mid-encounter the row keeps the original snapshot.
 /// </summary>
 public sealed class InternalPlayerEncounterEntity
 {
