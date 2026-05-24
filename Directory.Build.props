@@ -1,9 +1,9 @@
-<Project>
+﻿<Project>
 
   <PropertyGroup>
-    <Authors>Opachl</Authors>
+    <Authors>nxships</Authors>
     <Company>NexusFFXIV</Company>
-    <Copyright>Copyright (c) Opachl</Copyright>
+    <Copyright>Copyright (c) nxships</Copyright>
     <RepositoryUrl>https://github.com/NexusFFXIV/NexusKit.Modules</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/NexusFFXIV/NexusKit.Modules</PackageProjectUrl>
