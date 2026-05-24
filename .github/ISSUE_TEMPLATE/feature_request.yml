@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest a new module, an API addition, or a behaviour change for an existing module.
+title: "[Feature]: "
+labels: ["enhancement", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Good ideas welcome. For open-ended brainstorming use [Discussions](https://github.com/NexusFFXIV/NexusKit.Modules/discussions). For new external-source modules (e.g. FFLogs, XIVAPI), include a quick note on what data the module would expose.
+
+  - type: input
+    id: target-package
+    attributes:
+      label: Target package or new module
+      description: |
+        Existing: `InternalData`, `ExternalData`, `PlayerEnrichment`, `FfxivCollect`, `Lodestone`, `PluginBridge`. Or describe the new module.
+      placeholder: "e.g. NexusKit.Modules.Lodestone — or 'new module: FFLogs API'"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Why is the current API / module set insufficient?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution (optional)
+      render: csharp
+
+  - type: textarea
+    id: cross-module
+    attributes:
+      label: Cross-module impact (optional)
+      description: |
+        Would this need changes in `InternalData` or `ExternalData` to integrate? Would it land in `PlayerEnrichment`?
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched [existing issues](https://github.com/NexusFFXIV/NexusKit.Modules/issues?q=is%3Aissue) and discussions for the same idea.
+          required: true
