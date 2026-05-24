@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<!-- net10.0-windows because we transitively depend on NexusKit.GameData,
+		     which uses Dalamud's IDataManager. Every consumer of this assembly is
+		     a Dalamud plugin anyway, so the Windows target is free. -->
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Platforms>x64</Platforms>
+		<Platform Condition=" '$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' ">x64</Platform>
+		<PlatformTarget>x64</PlatformTarget>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>NexusKit.Modules.ExternalData</RootNamespace>
+		<AssemblyName>NexusKit.Modules.ExternalData</AssemblyName>
+		<Description>Aggregates Lodestone + FFXIVCollect external data into a unified read model with shared cache and refresh queue contracts.</Description>
+		<IsPackable>true</IsPackable>
+		<Deterministic>true</Deterministic>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>CS1591</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="NexusKit.Core" Version="[0.1.0,)" />
+		<PackageReference Include="NexusKit.GameData" Version="[0.1.0,)" />
+		<PackageReference Include="NexusKit.Persistence" Version="[0.1.0,)" />
+		<ProjectReference Include="..\External\NexusKit.Modules.FfxivCollect\NexusKit.Modules.FfxivCollect.csproj" />
+		<ProjectReference Include="..\External\NexusKit.Modules.Lodestone\NexusKit.Modules.Lodestone.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" />
+		<None Include="docs\**\*.md" />
+	</ItemGroup>
+</Project>

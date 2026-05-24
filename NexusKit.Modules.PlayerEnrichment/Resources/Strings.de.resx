@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="nexuskit.modules.playerenrichment.queuestats.section.nav" xml:space="preserve">
+        <value>Refresh-Queue</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.section.description" xml:space="preserve">
+        <value>Momentaufnahme der per-Charakter-Refresh-Queue. Zeigt welche content_ids sich stapeln und wie lange der Worker braucht, um die Queue abzubauen.</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.button.refresh" xml:space="preserve">
+        <value>Neu laden</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.loading" xml:space="preserve">
+        <value>Wird geladen...</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.total" xml:space="preserve">
+        <value>Zeilen gesamt: {0:N0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.active" xml:space="preserve">
+        <value>Jetzt prozessierbar: {0:N0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.exhausted" xml:space="preserve">
+        <value>Erschöpft (Attempt-Cap erreicht): {0:N0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.waiting" xml:space="preserve">
+        <value>Wartet auf Retry: {0:N0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.eta" xml:space="preserve">
+        <value>Worker-ETA: {0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.eta.idle" xml:space="preserve">
+        <value>bereit</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.next_retry" xml:space="preserve">
+        <value>Nächster Retry: {0} (um {1:t})</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.status.processing" xml:space="preserve">
+        <value>Worker arbeitet — ETA {0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.status.idle.cooldown" xml:space="preserve">
+        <value>Worker im Wartemodus — nächster Retry in {0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.status.idle.exhausted" xml:space="preserve">
+        <value>Worker im Wartemodus — {0:N0} Zeilen erschöpft; im Profil „Refresh" klicken, um es erneut zu versuchen</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.status.empty" xml:space="preserve">
+        <value>Warteschlange leer</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.priority" xml:space="preserve">
+        <value>Priorität</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.category" xml:space="preserve">
+        <value>Kategorie</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.count" xml:space="preserve">
+        <value>Anzahl</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.heading.by_priority" xml:space="preserve">
+        <value>Nach Priorität</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.heading.by_category" xml:space="preserve">
+        <value>Nach Kategorie</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.heading.top_contents" xml:space="preserve">
+        <value>Top-Charaktere nach Queue-Tiefe</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.top.empty" xml:space="preserve">
+        <value>Die Queue ist leer.</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.content_id" xml:space="preserve">
+        <value>Content-ID</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.name" xml:space="preserve">
+        <value>Name</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.rows" xml:space="preserve">
+        <value>Zeilen</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.max_attempts" xml:space="preserve">
+        <value>Max. Versuche</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.unknown_name" xml:space="preserve">
+        <value>(unbekannt)</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.toggles.heading" xml:space="preserve">
+        <value>Aktive Kategorien</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.toggles.description" xml:space="preserve">
+        <value>Deaktivierte Kategorien werden nicht abgerufen — auch nicht über die Schaltfläche „Von Lodestone aktualisieren“. Beim Wiedereinschalten wird beim nächsten Sichten / Auswählen ein Nachholen geplant.</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.lodestoneid" xml:space="preserve">
+        <value>Lodestone-Verknüpfung</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.profile" xml:space="preserve">
+        <value>Profil</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.classjobs" xml:space="preserve">
+        <value>Klassen</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.gear" xml:space="preserve">
+        <value>Ausrüstung</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.freecompany" xml:space="preserve">
+        <value>Freie Gesellschaft</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.mounts" xml:space="preserve">
+        <value>Mounts</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.minions" xml:space="preserve">
+        <value>Begleiter</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.refresh.category.achievements" xml:space="preserve">
+        <value>Erfolge</value>
+    </data>
+</root>

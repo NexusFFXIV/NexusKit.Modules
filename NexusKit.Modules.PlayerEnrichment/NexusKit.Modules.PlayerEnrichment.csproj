@@ -1,0 +1,55 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Platforms>x64</Platforms>
+		<Platform Condition=" '$(Platform)' == '' Or '$(Platform)' == 'AnyCPU' ">x64</Platform>
+		<PlatformTarget>x64</PlatformTarget>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>NexusKit.Modules.PlayerEnrichment</RootNamespace>
+		<AssemblyName>NexusKit.Modules.PlayerEnrichment</AssemblyName>
+		<Description>Bridges InternalData and ExternalData via Lodestone-id resolution, the refresh queue, and shared UI hooks.</Description>
+		<IsPackable>true</IsPackable>
+		<Deterministic>true</Deterministic>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>CS1591</NoWarn>
+		<Use_DalamudPackager>false</Use_DalamudPackager>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="NexusKit.Core" Version="[0.1.0,)" />
+		<PackageReference Include="NexusKit.Persistence" Version="[0.1.0,)" />
+		<PackageReference Include="NexusKit.Ui" Version="[0.1.0,)" />
+		<ProjectReference Include="..\NexusKit.Modules.InternalData\NexusKit.Modules.InternalData.csproj" />
+		<ProjectReference Include="..\NexusKit.Modules.ExternalData\NexusKit.Modules.ExternalData.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Resources\Strings.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+		<EmbeddedResource Update="Resources\Strings.de.resx">
+			<DependentUpon>Strings.resx</DependentUpon>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Resources\Strings.Designer.cs">
+			<DependentUpon>Strings.resx</DependentUpon>
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" />
+		<None Include="docs\**\*.md" />
+	</ItemGroup>
+</Project>

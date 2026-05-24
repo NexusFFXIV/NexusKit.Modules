@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="nexuskit.bridges.lifestream.display_name" xml:space="preserve">
+        <value>Lifestream</value>
+    </data>
+    <data name="nexuskit.bridges.lifestream.description" xml:space="preserve">
+        <value>Navigation zu Häusern fremder Freien Gesellschaften und Ausführung von Lifestream-Befehlen.</value>
+    </data>
+    <data name="nexuskit.bridges.lifestream.travel.tooltip.same_world" xml:space="preserve">
+        <value>Direkt zum Anwesen auf der aktuellen Welt teleportieren.</value>
+    </data>
+    <data name="nexuskit.bridges.lifestream.travel.tooltip.world_visit" xml:space="preserve">
+        <value>Welt-Besuch zur Ziel-Welt und Teleport zum Anwesen.</value>
+    </data>
+    <data name="nexuskit.bridges.lifestream.travel.tooltip.cross_dc" xml:space="preserve">
+        <value>Reise zum Ziel-Datacenter starten. Nach Ankunft erneut klicken, um den Welt-Besuch fortzusetzen.</value>
+    </data>
+</root>
