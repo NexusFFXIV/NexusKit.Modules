@@ -254,9 +254,9 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
         var snapshots = mObjectTable.GetVisiblePlayers().ToList();
 
         // Diff against the previous tick's set to flag "fresh sightings" — characters
-        // that just became visible. Old PlayerNexus only bumped SeenCount on this
-        // transition (not on every tick the player stayed in range); we mirror that
-        // so a 5-minute idle next to someone doesn't end up as 300 seen events.
+        // that just became visible. SeenCount only increments on this transition (not
+        // on every tick the player stays in range), so a 5-minute idle next to someone
+        // doesn't end up as 300 seen events.
         var visibleIds = snapshots.Select(s => s.ContentId).ToHashSet();
         IReadOnlySet<ulong> previouslyVisible;
         lock (mLock)
