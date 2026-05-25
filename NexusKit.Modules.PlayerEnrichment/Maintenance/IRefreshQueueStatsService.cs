@@ -3,12 +3,22 @@ namespace NexusKit.Modules.PlayerEnrichment.Maintenance;
 /// <summary>One row in the top-N "biggest queue depth per character" view.
 /// <see cref="Name"/> is null when the queue contains a content_id we no
 /// longer have an <c>observed_player</c> row for (stale leak — shouldn't
-/// happen but defensible).</summary>
+/// happen but defensible).
+///
+/// <para><see cref="EarliestNextRetryAtUtc"/> and
+/// <see cref="EarliestDeletionAtUtc"/> are mutually-exclusive in practice
+/// for the UI: the section picks the deletion countdown when
+/// <see cref="MaxAttemptCount"/> hits the cap, otherwise the retry
+/// countdown. Both are nullable so the UI can fall back to "retry
+/// pending" / "cleanup pending" placeholders when no concrete time exists
+/// (no failed row yet, no row past the cap yet).</para></summary>
 public sealed record RefreshQueueTopContent(
     ulong ContentId,
     string? Name,
     int Rows,
-    int MaxAttemptCount);
+    int MaxAttemptCount,
+    DateTime? EarliestNextRetryAtUtc,
+    DateTime? EarliestDeletionAtUtc);
 
 /// <summary>Aggregated state of <c>nexus_internal_refresh_queue</c> for the
 /// Settings-UI queue diagnostics panel. All counts are computed in a single

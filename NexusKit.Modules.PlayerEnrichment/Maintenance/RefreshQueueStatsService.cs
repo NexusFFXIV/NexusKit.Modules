@@ -94,17 +94,9 @@ internal sealed class RefreshQueueStatsService : IRefreshQueueStatsService
             // shows a steady 1-2 minute "ETA" and looks hung.
             var estimatedDrain = TimeSpan.FromTicks(
                 PlayerRefreshQueueService.WorkerGap.Ticks * eligibleNow);
-            DateTime? earliestRetryAt = null;
-            if (minWaitingFailedAt is not null
-                && DateTime.TryParseExact(minWaitingFailedAt,
-                    SqliteDateTimeFormat,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out var parsed))
-            {
-                earliestRetryAt = DateTime.SpecifyKind(parsed, DateTimeKind.Utc)
-                                  + PlayerRefreshQueueService.FailureBackoff;
-            }
+            var earliestRetryAt = ParseSqliteDateTimeUtc(minWaitingFailedAt) is { } parsedRetry
+                ? parsedRetry + PlayerRefreshQueueService.FailureBackoff
+                : (DateTime?)null;
 
             var byPriority = await GroupAsync(connection,
                 "SELECT priority, COUNT(*) FROM nexus_internal_refresh_queue GROUP BY priority",
@@ -116,22 +108,46 @@ internal sealed class RefreshQueueStatsService : IRefreshQueueStatsService
             var top = new List<RefreshQueueTopContent>(TopContentLimit);
             await using (var cmd = connection.CreateCommand())
             {
+                // Two MIN(CASE...) aggregates surface the per-row schedule the
+                // Settings UI needs: the earliest cooldown-clearance for
+                // *non-exhausted* rows of this content (drives "Retry in …"),
+                // and the earliest attempt-stamp of *exhausted* rows (drives
+                // "Cleanup in …" via the maintenance contributor's 24h TTL).
+                // Both are NULL when the corresponding subset is empty —
+                // populated as DateTime? on the DTO so the UI can fall back
+                // to "Retry pending" / "Cleanup pending" placeholders.
                 cmd.CommandText = $@"
-                    SELECT q.content_id, o.name, COUNT(*) AS rows, MAX(q.attempt_count) AS max_attempts
+                    SELECT q.content_id, o.name, COUNT(*) AS rows,
+                           MAX(q.attempt_count) AS max_attempts,
+                           MIN(CASE WHEN q.attempt_count <  @maxAttempts AND q.last_failed_at    IS NOT NULL
+                                    THEN q.last_failed_at    END) AS earliest_failed,
+                           MIN(CASE WHEN q.attempt_count >= @maxAttempts AND q.last_attempted_at IS NOT NULL
+                                    THEN q.last_attempted_at END) AS earliest_attempted
                     FROM nexus_internal_refresh_queue q
                     LEFT JOIN nexus_internal_observed_player o
                         ON o.content_id = q.content_id
                     GROUP BY q.content_id
                     ORDER BY rows DESC
                     LIMIT {TopContentLimit}";
+                AddParam(cmd, "@maxAttempts", PlayerRefreshQueueService.MaxAttempts);
                 await using var r = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
                 while (await r.ReadAsync(ct).ConfigureAwait(false))
                 {
+                    var earliestFailed = r.IsDBNull(4) ? null : r.GetString(4);
+                    var earliestAttempted = r.IsDBNull(5) ? null : r.GetString(5);
+                    var nextRetryAt = ParseSqliteDateTimeUtc(earliestFailed) is { } f
+                        ? f + PlayerRefreshQueueService.FailureBackoff
+                        : (DateTime?)null;
+                    var deletionAt = ParseSqliteDateTimeUtc(earliestAttempted) is { } a
+                        ? a + RefreshQueueMaintenanceContributor.ExhaustedRetention
+                        : (DateTime?)null;
                     top.Add(new RefreshQueueTopContent(
                         ContentId: (ulong)r.GetInt64(0),
                         Name: r.IsDBNull(1) ? null : r.GetString(1),
                         Rows: r.GetInt32(2),
-                        MaxAttemptCount: r.GetInt32(3)));
+                        MaxAttemptCount: r.GetInt32(3),
+                        EarliestNextRetryAtUtc: nextRetryAt,
+                        EarliestDeletionAtUtc: deletionAt));
                 }
             }
 
@@ -180,6 +196,22 @@ internal sealed class RefreshQueueStatsService : IRefreshQueueStatsService
         while (await r.ReadAsync(ct).ConfigureAwait(false))
             result[r.GetInt32(0)] = r.GetInt32(1);
         return result;
+    }
+
+    /// <summary>Parses a SQLite TEXT timestamp written by EF Core's provider
+    /// (space-separator, 7 fractional digits, no T/Z) into a UTC
+    /// <see cref="DateTime"/>. Returns null for null or unparseable input —
+    /// callers treat that as "no scheduled time" rather than throwing.</summary>
+    private static DateTime? ParseSqliteDateTimeUtc(string? value)
+    {
+        if (value is null) return null;
+        if (!DateTime.TryParseExact(value,
+                SqliteDateTimeFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsed))
+            return null;
+        return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
     }
 
     private static void AddParam(System.Data.Common.DbCommand cmd, string name, object value)

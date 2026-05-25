@@ -325,16 +325,16 @@ public sealed class RefreshQueueSettingsSection : IAutoSettingsSection, IDisposa
             "##nxk_queuestats_top",
             new[]
             {
-                new NexusTableColumn(mLoc.Get("nexuskit.modules.playerenrichment.queuestats.col.content_id"), Width: 170f),
                 new NexusTableColumn(mLoc.Get("nexuskit.modules.playerenrichment.queuestats.col.name")),
                 new NexusTableColumn(mLoc.Get("nexuskit.modules.playerenrichment.queuestats.col.rows"), Width: 70f),
                 new NexusTableColumn(mLoc.Get("nexuskit.modules.playerenrichment.queuestats.col.max_attempts"), Width: 90f),
+                new NexusTableColumn(mLoc.Get("nexuskit.modules.playerenrichment.queuestats.col.schedule"), Width: 160f),
             },
             snap.TopContents,
             row =>
             {
-                ImGui.TableNextColumn();
-                NexusTable.CellText(row.ContentId.ToString(CultureInfo.InvariantCulture));
+                var atCap = row.MaxAttemptCount >= PlayerRefreshQueueService.MaxAttempts;
+
                 ImGui.TableNextColumn();
                 NexusTable.CellText(row.Name ?? mLoc.Get("nexuskit.modules.playerenrichment.queuestats.unknown_name"),
                     row.Name is null ? ImGuiColors.DalamudGrey3 : (System.Numerics.Vector4?)null);
@@ -346,12 +346,43 @@ public sealed class RefreshQueueSettingsSection : IAutoSettingsSection, IDisposa
                 // obvious that the worker has given up on this entry; the
                 // user can click Refresh on the player to revive it (see
                 // UpsertAsync's same-priority Immediate branch).
-                var atCap = row.MaxAttemptCount >= PlayerRefreshQueueService.MaxAttempts;
                 NexusTable.CellText(
                     string.Format(CultureInfo.CurrentCulture, "{0:N0}/{1:N0}",
                         row.MaxAttemptCount, PlayerRefreshQueueService.MaxAttempts),
                     atCap ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudGrey);
+                ImGui.TableNextColumn();
+                // Schedule column is state-dependent: at-cap rows are headed
+                // for the 24h cleanup, everything else is waiting on the
+                // next retry. Countdown is computed per frame off
+                // DateTime.UtcNow so it ticks between the 3-second snapshot
+                // refreshes (DurationFormat.TwoUnit clamps negatives to 0s
+                // until the next snapshot lands). Falls back to a "pending"
+                // label when no concrete time exists (fresh row with no
+                // failure yet, or no row past the cap yet).
+                DrawScheduleCell(row, atCap);
             });
+    }
+
+    private void DrawScheduleCell(RefreshQueueTopContent row, bool atCap)
+    {
+        if (atCap)
+        {
+            var text = row.EarliestDeletionAtUtc is { } d
+                ? string.Format(CultureInfo.CurrentCulture,
+                    mLoc.Get("nexuskit.modules.playerenrichment.queuestats.schedule.delete_in"),
+                    DurationFormat.TwoUnit(d - DateTime.UtcNow))
+                : mLoc.Get("nexuskit.modules.playerenrichment.queuestats.schedule.delete_pending");
+            NexusTable.CellText(text, ImGuiColors.DalamudYellow);
+        }
+        else
+        {
+            var text = row.EarliestNextRetryAtUtc is { } r
+                ? string.Format(CultureInfo.CurrentCulture,
+                    mLoc.Get("nexuskit.modules.playerenrichment.queuestats.schedule.retry_in"),
+                    DurationFormat.TwoUnit(r - DateTime.UtcNow))
+                : mLoc.Get("nexuskit.modules.playerenrichment.queuestats.schedule.retry_now");
+            NexusTable.CellText(text, ImGuiColors.DalamudGrey);
+        }
     }
 
     private void StartLoad()
