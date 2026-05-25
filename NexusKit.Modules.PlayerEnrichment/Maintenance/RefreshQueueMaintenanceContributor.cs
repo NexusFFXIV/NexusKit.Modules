@@ -22,8 +22,12 @@ internal sealed class RefreshQueueMaintenanceContributor : IDbMaintenanceContrib
     /// <summary>Aged-out exhausted rows are kept around for 24h before
     /// being deleted — gives the user a window to manually revive a row
     /// via the detail-panel Refresh button (which resets the bookkeeping
-    /// via UpsertAsync's same-priority Immediate branch).</summary>
-    private static readonly TimeSpan ExhaustedRetention = TimeSpan.FromHours(24);
+    /// via UpsertAsync's same-priority Immediate branch).
+    /// <para>Internal because <c>RefreshQueueStatsService</c> needs the same
+    /// retention to render the per-row "Cleanup in …" countdown in the
+    /// Settings UI — duplicating the value as a magic number would silently
+    /// drift if this contributor is retuned.</para></summary>
+    internal static readonly TimeSpan ExhaustedRetention = TimeSpan.FromHours(24);
 
     private readonly ILogger<RefreshQueueMaintenanceContributor> mLog;
 

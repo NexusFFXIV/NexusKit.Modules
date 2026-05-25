@@ -88,20 +88,56 @@ namespace NexusKit.Modules.PlayerEnrichment.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Content ID.
-        /// </summary>
-        internal static string nexuskit_modules_playerenrichment_queuestats_col_content_id {
-            get {
-                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.col.content_id", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Count.
         /// </summary>
         internal static string nexuskit_modules_playerenrichment_queuestats_col_count {
             get {
                 return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.col.count", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Schedule.
+        /// </summary>
+        internal static string nexuskit_modules_playerenrichment_queuestats_col_schedule {
+            get {
+                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.col.schedule", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry in {0}.
+        /// </summary>
+        internal static string nexuskit_modules_playerenrichment_queuestats_schedule_retry_in {
+            get {
+                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.schedule.retry_in", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry pending.
+        /// </summary>
+        internal static string nexuskit_modules_playerenrichment_queuestats_schedule_retry_now {
+            get {
+                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.schedule.retry_now", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cleanup in {0}.
+        /// </summary>
+        internal static string nexuskit_modules_playerenrichment_queuestats_schedule_delete_in {
+            get {
+                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.schedule.delete_in", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cleanup pending.
+        /// </summary>
+        internal static string nexuskit_modules_playerenrichment_queuestats_schedule_delete_pending {
+            get {
+                return ResourceManager.GetString("nexuskit.modules.playerenrichment.queuestats.schedule.delete_pending", resourceCulture);
             }
         }
         

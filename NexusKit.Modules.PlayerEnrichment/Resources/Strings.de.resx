@@ -84,9 +84,6 @@
     <data name="nexuskit.modules.playerenrichment.queuestats.top.empty" xml:space="preserve">
         <value>Die Queue ist leer.</value>
     </data>
-    <data name="nexuskit.modules.playerenrichment.queuestats.col.content_id" xml:space="preserve">
-        <value>Content-ID</value>
-    </data>
     <data name="nexuskit.modules.playerenrichment.queuestats.col.name" xml:space="preserve">
         <value>Name</value>
     </data>
@@ -95,6 +92,21 @@
     </data>
     <data name="nexuskit.modules.playerenrichment.queuestats.col.max_attempts" xml:space="preserve">
         <value>Max. Versuche</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.col.schedule" xml:space="preserve">
+        <value>Zeitplan</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.schedule.retry_in" xml:space="preserve">
+        <value>Versuch in {0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.schedule.retry_now" xml:space="preserve">
+        <value>Versuch steht an</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.schedule.delete_in" xml:space="preserve">
+        <value>Löschung in {0}</value>
+    </data>
+    <data name="nexuskit.modules.playerenrichment.queuestats.schedule.delete_pending" xml:space="preserve">
+        <value>Wird gelöscht</value>
     </data>
     <data name="nexuskit.modules.playerenrichment.queuestats.unknown_name" xml:space="preserve">
         <value>(unbekannt)</value>
