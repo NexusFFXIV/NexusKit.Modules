@@ -638,6 +638,28 @@ internal sealed class ExternalDataPlayerService : IExternalDataPlayerService
         var existing = await ctx.Set<PlayerProfileEntity>().FindAsync([lodestoneId], ct).ConfigureAwait(false);
         if (existing is null)
         {
+            // First-time profile insert with an FC link is the "joined FC"
+            // starting condition the HistoryNotificationProducer documents
+            // (OldValue == null → "X is FC <name> beigetreten"). Without this
+            // path the FC-change row only gets logged when a *subsequent*
+            // refresh flips the FC link — players first observed with an FC
+            // would never get a history entry. Pre-warm the FC catalog like
+            // the update branch so the chat line renders «TAG» Name instead
+            // of FC#<id>.
+            if (mChangeRecorder is not null && !string.IsNullOrEmpty(profile.FreeCompanyLodestoneId))
+            {
+                var nextFc = profile.FreeCompanyLodestoneId;
+                try { await mFreeCompanies.GetAsync(nextFc, ct).ConfigureAwait(false); }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    mLog.LogDebug(ex,
+                        "FC pre-warm fetch failed for {Id} during initial profile insert for {Lid}",
+                        nextFc, lodestoneId);
+                }
+                _ = mChangeRecorder.RecordPlayerChangeAsync(
+                    lodestoneId, PlayerChangeKind.FreeCompany, null, nextFc, now, ct);
+            }
+
             ctx.Set<PlayerProfileEntity>().Add(profile.ToEntity(lodestoneId, now));
         }
         else
