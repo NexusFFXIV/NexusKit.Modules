@@ -23,9 +23,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="NexusKit.Core" Version="[0.1.0,)" />
-		<PackageReference Include="NexusKit.Persistence" Version="[0.1.0,)" />
-		<PackageReference Include="NexusKit.Ui" Version="[0.1.0,)" />
+		<PackageReference Include="NexusKit.Core" Version="[0.2.0,)" />
+		<PackageReference Include="NexusKit.Persistence" Version="[0.2.0,)" />
+		<PackageReference Include="NexusKit.Ui" Version="[0.2.0,)" />
 		<ProjectReference Include="..\NexusKit.Modules.InternalData\NexusKit.Modules.InternalData.csproj" />
 		<ProjectReference Include="..\NexusKit.Modules.ExternalData\NexusKit.Modules.ExternalData.csproj" />
 	</ItemGroup>
