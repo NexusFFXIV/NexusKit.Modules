@@ -2,7 +2,7 @@
 
 NexusKit.Modules follows [Semantic Versioning](https://semver.org/). Versions are derived from git tags via [MinVer](https://github.com/adamralph/minver).
 
-All 6 packages in this repo ship with the **same version**. Floating `PackageReference` constraints (`[0.1.0,)`) point at NexusKit, so consumers of Modules pick up NexusKit patch updates automatically; pin in `Directory.Packages.props` if your consumer wants reproducible builds.
+All 6 packages in this repo ship with the **same version**. PackageReference constraints like `[0.1.0,)` point at NexusKit, but a critical NuGet behaviour to keep in mind: `PackageReference` resolves to the **lowest** version satisfying the range, **not** the latest. So a new NexusKit release does **not** get picked up automatically — the constraint floor has to be bumped (e.g. `[0.1.0,)` → `[0.1.1,)`) and `packages.lock.json` regenerated, otherwise restore keeps resolving the old version. Same applies in reverse for downstream consumers of Modules packages.
 
 ## Cutting a release
 
@@ -68,7 +68,11 @@ git tag -a v0.2.0-rc.1 -m "v0.2.0-rc.1"
 git push origin v0.2.0-rc.1
 ```
 
-NuGets land with the `-rc.1` suffix; the GitHub Release is automatically marked **Pre-release**. Consumers on floating `PackageReference` (`[0.1.0,)`) continue to pull stable versions; testers pin the pre-release explicitly.
+NuGets land with the `-rc.1` suffix; the GitHub Release is automatically marked **Pre-release**. Pre-releases are ignored by `PackageReference` ranges by default (`[0.1.0,)` won't resolve to `0.2.0-rc.1`), so stable consumers keep building against the previous stable. Testers pin the pre-release explicitly:
+
+```xml
+<PackageReference Include="NexusKit.Modules.PlayerEnrichment" Version="0.2.0-rc.1" />
+```
 
 ### Cross-repo testing cascade
 
@@ -82,8 +86,9 @@ A typical end-to-end testing flow when a change spans NexusKit and the plugin:
    land via PR, tag `v0.2.0-rc.1` → 6 pre-release NuGets
 3. **PlayerNexusTracker**: pull, pin both upstream pre-releases, tag `v0.2.0-rc.1` → plugin pre-release lands in DalamudRepo's `DownloadLinkTesting` field, surfaced for testers who enabled the toggle in Dalamud Settings
 4. Tester feedback comes in
-5. **Promote to stable**: revert the pinned `Version="0.2.0-rc.1"` constraints back to floating `[0.1.0,)`, merge that revert, then tag all three repos with `v0.2.0` in the same order
-   - All consumers on floating refs now resolve to the new `0.2.0` stable
+5. **Promote to stable**: replace the pinned `Version="0.2.0-rc.1"` constraints with a bumped range floor (`Version="[0.2.0,)"`), merge that change, then tag all three repos with `v0.2.0` in the same order
+   - Re-running `dotnet restore --force-evaluate` (or letting CI restore on the new branch) regenerates `packages.lock.json` against the new floor
+   - Reverting all the way back to `[0.1.0,)` would re-resolve to `0.1.0` (NuGet picks the lowest of the range) — the floor must move forward
    - Stable plugin lands in DalamudRepo's `DownloadLinkInstall` — every player gets the update
 
 If the cascade is too heavy for a small change (no NexusKit-side change needed), skip step 1 and tag only Modules + Plugin.
