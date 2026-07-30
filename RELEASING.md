@@ -2,6 +2,8 @@
 
 NexusKit.Modules follows [Semantic Versioning](https://semver.org/). Versions are derived from git tags via [MinVer](https://github.com/adamralph/minver).
 
+> **Never add a `<Version>` to a csproj here.** MinVer deriving the version from the tag is what makes tag and package version impossible to desynchronise. PlayerNexusTracker had a hardcoded version instead and shipped a release whose assembly version did not match its tag, which made the release invisible to existing users. If you find yourself wanting to pin a version, that is a signal something else is wrong.
+
 All 6 packages in this repo ship with the **same version**. PackageReference constraints like `[0.1.0,)` point at NexusKit, but a critical NuGet behaviour to keep in mind: `PackageReference` resolves to the **lowest** version satisfying the range, **not** the latest. So a new NexusKit release does **not** get picked up automatically — the constraint floor has to be bumped (e.g. `[0.1.0,)` → `[0.1.1,)`) and `packages.lock.json` regenerated, otherwise restore keeps resolving the old version. Same applies in reverse for downstream consumers of Modules packages.
 
 ## Cutting a release
