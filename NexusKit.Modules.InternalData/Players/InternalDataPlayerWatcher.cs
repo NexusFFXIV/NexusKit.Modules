@@ -65,6 +65,11 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
     private readonly SemaphoreSlim mProcessGate = new(initialCount: 1, maxCount: 1);
     private int mFrameCounter;
     private bool mDisposed;
+    // 0 until the "lifetime is stopping, persistence is off" warning in
+    // ProcessAsync has been emitted once. Flipped with Interlocked because
+    // ProcessAsync runs on thread-pool threads and overlapping ticks would
+    // otherwise each log a copy.
+    private int mStoppingBailLogged;
     // Bumped every time the in-memory mObserved map mutates. Exposed via
     // IInternalDataPlayerWatcher.Revision so UI consumers (currently the
     // user-filter memoization in PlayerListPanel) can detect "list changed
@@ -314,7 +319,22 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
         bool canTrackChange,
         uint? localPlayerCurrentWorldId)
     {
-        if (mDb.IsStopping) return;
+        if (mDb.IsStopping)
+        {
+            // One-shot. On a legitimate unload this fires at most once during
+            // teardown, which is harmless noise. If it shows up while the
+            // plugin is plainly still running, the lifetime token was
+            // cancelled by something that is NOT a shutdown — observation
+            // persistence is then dead for the rest of the session, Recent /
+            // ObservationProcessed are frozen, and the nearby-player list
+            // silently stops growing. That exact failure mode ran unnoticed
+            // for weeks because this path used to return without a word.
+            if (Interlocked.Exchange(ref mStoppingBailLogged, 1) == 0)
+                mLog.LogWarning(
+                    "InternalData: observation persistence disabled — the plugin lifetime is stopping. "
+                    + "If the plugin is still running, this is a lifetime-token bug, not a shutdown.");
+            return;
+        }
         // Try-acquire the serialization gate. If a previous tick's scan is
         // still running, drop this tick — the next ~1s scan re-sees the
         // same players and applies the same upsert, so nothing is lost.
