@@ -527,6 +527,39 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
         return true;
     }
 
+    public async Task<SearchCommentUpdate> SetSearchCommentAsync(
+        ulong contentId, string? searchComment, CancellationToken ct = default)
+    {
+        var normalized = string.IsNullOrWhiteSpace(searchComment) ? null : searchComment.Trim();
+        try
+        {
+            await using var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false);
+            var row = await ctx.Set<InternalObservedPlayerEntity>()
+                .FindAsync(new object[] { contentId }, ct).ConfigureAwait(false);
+            // No observation row means we never saw this character on the object
+            // table. Nothing to attach the comment to, and inventing a row here
+            // would fabricate a sighting that never happened.
+            if (row is null) return SearchCommentUpdate.NotApplied;
+
+            var previous = row.SearchComment;
+            if (string.Equals(previous, normalized, StringComparison.Ordinal))
+                return SearchCommentUpdate.Unchanged(previous);
+
+            row.SearchComment = normalized;
+            // UpdatedAt deliberately left alone, same as UpdateNotesAsync: it
+            // drives observation-freshness, and examining somebody is not a
+            // sighting of them.
+            await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+            return SearchCommentUpdate.Changed(previous, normalized);
+        }
+        catch (OperationCanceledException) { return SearchCommentUpdate.NotApplied; }
+        catch (Exception ex)
+        {
+            mLog.LogWarning(ex, "InternalData: failed to persist search comment for ContentId {Cid}", contentId);
+            return SearchCommentUpdate.NotApplied;
+        }
+    }
+
     public async Task<ObservedPlayerDetail?> GetDetailAsync(ulong contentId, CancellationToken ct = default)
     {
         try
@@ -540,7 +573,7 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
             var row = await ctx.Set<InternalObservedPlayerEntity>()
                 .FindAsync(new object[] { contentId }, ct).ConfigureAwait(false);
             if (row is null) return null;
-            return new ObservedPlayerDetail(contentId, row.Customize, row.Notes);
+            return new ObservedPlayerDetail(contentId, row.Customize, row.Notes, row.SearchComment);
         }
         catch (OperationCanceledException) { return null; }
         catch (Exception ex)

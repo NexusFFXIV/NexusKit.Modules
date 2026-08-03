@@ -50,5 +50,15 @@ public sealed class InternalObservedPlayerEntity
     /// touch notes leave existing text alone.</summary>
     public string? Notes { get; set; }
 
+    /// <summary>The character's in-game search comment (Search Info), captured
+    /// when the user examined them. Null when never captured or when the
+    /// character has none set — the two are deliberately not distinguished.
+    /// <para>Not part of the observation tick: the game's Character struct
+    /// carries no such field, so this is only ever written by the Examine
+    /// capture path, never by the object-table scan.</para>
+    /// <para>Do not confuse with the Lodestone biography, which lives on
+    /// <c>PlayerProfileEntity.Bio</c> in ExternalData.</para></summary>
+    public string? SearchComment { get; set; }
+
     public DateTime UpdatedAt { get; set; }
 }

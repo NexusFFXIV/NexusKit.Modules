@@ -63,9 +63,20 @@ public interface IInternalDataPlayerWatcher
     /// so notes saves don't shift the observation-freshness signal.</summary>
     Task<bool> UpdateNotesAsync(ulong contentId, string? notes, CancellationToken ct = default);
 
+    /// <summary>Persists the character's in-game search comment, captured by the
+    /// Examine path rather than by an observation tick (the game's Character
+    /// struct carries no such field). Pass null or whitespace to record that they
+    /// have none. Leaves <c>UpdatedAt</c> alone for the same reason as
+    /// <see cref="UpdateNotesAsync"/> — examining somebody is not a sighting.
+    /// <para>The returned <see cref="SearchCommentUpdate"/> reports whether the
+    /// value actually moved and what it was before, so the caller can write a
+    /// history row without a second read.</para></summary>
+    Task<SearchCommentUpdate> SetSearchCommentAsync(
+        ulong contentId, string? searchComment, CancellationToken ct = default);
+
     /// <summary>Lazy-loads the heavy fields not carried on the in-memory
-    /// <see cref="ObservedPlayer"/>: full Customize bytes and Notes content.
-    /// Single indexed lookup; safe to call from the UI thread. Returns null
-    /// when no observed_player row exists for the id.</summary>
+    /// <see cref="ObservedPlayer"/>: full Customize bytes, Notes content and the
+    /// captured search comment. Single indexed lookup; safe to call from the UI
+    /// thread. Returns null when no observed_player row exists for the id.</summary>
     Task<ObservedPlayerDetail?> GetDetailAsync(ulong contentId, CancellationToken ct = default);
 }

@@ -29,4 +29,16 @@ public enum PlayerHistoryKind : byte
     /// tag-string OldValue/NewValue payloads on those rows render through
     /// the same UI path; new rows carry FC Lodestone ids.</para></summary>
     FreeCompanyChange = 4,
+
+    /// <summary>The character's in-game search comment (Search Info) changed.
+    /// OldValue / NewValue carry the raw text; either may be null, which is how
+    /// "set for the first time" and "cleared" are expressed.
+    /// <para>Unlike every kind above, this one is not produced by the
+    /// observation diff — the search comment is not in the object table. It is
+    /// written by the Examine capture path, so a row only ever appears for a
+    /// character the user examined at least twice with a different comment in
+    /// between (or once, if they had none on file before).</para>
+    /// <para>Not the Lodestone biography — that is a different datum and is not
+    /// tracked here.</para></summary>
+    SearchCommentChange = 5,
 }

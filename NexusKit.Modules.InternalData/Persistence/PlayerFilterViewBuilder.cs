@@ -49,6 +49,7 @@ internal sealed class PlayerFilterViewBuilder : IDatabaseViewBuilder
                 o.online_status_id      AS online_status_id,
                 o.company_tag           AS company_tag,
                 o.notes                 AS notes,
+                o.search_comment        AS search_comment,
                 e.data_center_id        AS external_data_center_id,
                 p.free_company_lodestone_id AS free_company_lodestone_id,
                 fc.name                 AS fc_name,

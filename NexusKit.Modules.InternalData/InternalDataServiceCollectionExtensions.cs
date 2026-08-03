@@ -36,6 +36,11 @@ public static class InternalDataServiceCollectionExtensions
         services.AddSingleton<InternalDataEncounterTracker>();
         services.AddSingleton<IInternalDataEncounterTracker>(sp => sp.GetRequiredService<InternalDataEncounterTracker>());
 
+        // Examine-time search-comment capture. Needs an eager resolve like the
+        // watcher — its ctor is where the subscription happens. Depends on
+        // IInspectSearchCommentWatcher from NexusKit.GameData.
+        services.AddSingleton<SearchCommentCaptureService>();
+
         return services;
     }
 }
