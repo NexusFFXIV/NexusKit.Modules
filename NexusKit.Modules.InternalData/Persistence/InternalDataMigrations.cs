@@ -30,6 +30,7 @@ internal sealed class InternalDataMigrations : IMigrationModule
         new AddEncountersDropSeenCount(),
         new AddObservedPlayerNotesColumn(),
         new AddEncounterWorldIdColumn(),
+        new AddObservedPlayerSearchCommentColumn(),
     };
 }
 
@@ -218,6 +219,39 @@ internal sealed class AddObservedPlayerNotesColumn : IMigration
 
         await ctx.Database.ExecuteSqlRawAsync(
             "ALTER TABLE nexus_internal_observed_player ADD COLUMN notes TEXT;",
+            ct).ConfigureAwait(false);
+    }
+}
+
+internal sealed class AddObservedPlayerSearchCommentColumn : IMigration
+{
+    public string Id => "20260803_observed_player_search_comment_column";
+
+    // Same shape as the notes column above: declared on the entity module, so
+    // fresh installs get it from EnsureCreated and this is stamped applied on
+    // baseline. Upgrade installs take the ALTER TABLE, PRAGMA-gated for
+    // idempotence. Existing rows stay NULL — the search comment only ever
+    // arrives via the Examine capture path, never from an observation tick,
+    // so there is nothing to backfill from.
+    public async Task UpAsync(DbContext ctx, CancellationToken ct)
+    {
+        var connection = ctx.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+
+        await using (var probe = connection.CreateCommand())
+        {
+            probe.CommandText = "PRAGMA table_info(nexus_internal_observed_player);";
+            await using var reader = await probe.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                if (string.Equals(reader.GetString(1), "search_comment", StringComparison.OrdinalIgnoreCase))
+                    return;
+            }
+        }
+
+        await ctx.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE nexus_internal_observed_player ADD COLUMN search_comment TEXT;",
             ct).ConfigureAwait(false);
     }
 }

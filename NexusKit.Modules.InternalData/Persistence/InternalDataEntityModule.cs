@@ -34,6 +34,7 @@ internal sealed class InternalDataEntityModule : IEntityModule
             e.Property(x => x.CurrentMinionId).HasColumnName("current_minion_id");
             e.Property(x => x.OnlineStatusId).HasColumnName("online_status_id");
             e.Property(x => x.Notes).HasColumnName("notes");
+            e.Property(x => x.SearchComment).HasColumnName("search_comment");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
 
             e.HasIndex(x => x.Name);

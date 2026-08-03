@@ -260,6 +260,7 @@
       "nexuskit.gamedata": {
         "type": "Project",
         "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.10, )",
           "NexusKit.Core": "[1.0.0, )"
         }
       },
