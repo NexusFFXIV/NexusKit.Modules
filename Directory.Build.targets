@@ -1,0 +1,23 @@
+<Project>
+
+  <!-- Chain to a Directory.Build.targets sitting above this clone, if any.
+       MSBuild auto-imports only the nearest file, so adding one here would
+       otherwise silently switch off the local multi-repo workspace's
+       PackageReference→ProjectReference swap for every project in this repo. -->
+  <PropertyGroup>
+    <ParentDirectoryBuildTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)..'))</ParentDirectoryBuildTargets>
+  </PropertyGroup>
+  <Import Project="$(ParentDirectoryBuildTargets)" Condition="'$(ParentDirectoryBuildTargets)' != ''" />
+
+  <!-- Dalamud.NET.Sdk hardcodes versions on the PackageReferences it injects
+       (Sdk.props), which central package management rejects with NU1008. We do
+       not own those references, so strip the metadata here and let
+       Directory.Packages.props carry the versions like every other package.
+       This has to live in .targets: Sdk.props is evaluated before
+       Directory.Build.props, so the items do not exist yet at that point. -->
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
+    <PackageReference Update="DotNet.ReproducibleBuilds" Version="" />
+    <PackageReference Update="DalamudPackager" Version="" />
+  </ItemGroup>
+
+</Project>

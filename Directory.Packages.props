@@ -1,0 +1,51 @@
+<Project>
+
+  <!-- Central Package Management: every NuGet version for this repo lives here,
+       and the csprojs carry bare <PackageReference Include="..."/> only.
+
+       This exists to keep Dependabot's grouped bumps atomic. Dependabot scopes
+       NuGet updates per project directory, so with per-csproj versions a group
+       update could rewrite some projects and miss others — one project keeping
+       Microsoft.Extensions.* on the old version while another moved is enough
+       to fail the build with NU1605 (package downgrade, escalated to an error
+       by TreatWarningsAsErrors). One file means a version can only move
+       everywhere at once. -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Keep these on one version. EF Core (via NexusKit.Persistence) pulls
+         specific Microsoft.Extensions.* versions transitively, so a split
+         between the two families is exactly what produces NU1605. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NexusKit framework. Open-ended ranges on purpose: the local workspace
+         swaps these for ProjectReferences, and CI takes the newest published
+         package. Do not let a bump turn them into exact pins. -->
+    <PackageVersion Include="NexusKit.Core" Version="[0.4.0,)" />
+    <PackageVersion Include="NexusKit.GameData" Version="[0.4.0,)" />
+    <PackageVersion Include="NexusKit.Persistence" Version="[0.4.0,)" />
+    <PackageVersion Include="NexusKit.Ui" Version="[0.4.0,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageVersion Include="NetStone" Version="1.4.1" />
+    <PackageVersion Include="MinVer" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Injected by Dalamud.NET.Sdk; their versions are stripped in
+         Directory.Build.targets so they resolve from here instead. Keep these
+         in step with the SDK unless there is a reason to diverge. -->
+    <PackageVersion Include="DotNet.ReproducibleBuilds" Version="1.2.39" />
+    <PackageVersion Include="DalamudPackager" Version="15.0.0" />
+  </ItemGroup>
+
+</Project>
