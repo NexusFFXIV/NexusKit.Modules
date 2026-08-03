@@ -61,7 +61,8 @@ truth; both upsert and close paths read/write it under `mLock`.
 Mid-zone-load races (TerritoryChanged hasn't fired yet but the client is
 partway through the load) are reconciled in `UpsertSightingAsync`: if the
 cached territory drifts from the snapshot's, the snapshot wins and the
-cached encounter is treated as stale.
+cached encounter is closed and treated as stale. See "Drift reconciliation"
+below.
 
 ## Startup recovery sweep
 
@@ -116,9 +117,40 @@ rolls both back instead of leaving an orphan parent.
 unload paths the DI container backing `INexusDbContextFactory` is already
 torn down by the time `Dispose` runs. The `Stopping` lifecycle callback
 above is the supported final-write point; `Dispose` only unsubscribes and
-nulls the in-memory id. If the `Stopping` write was missed (external
-cancel path), the next startup's sweep closes the orphan from
-`last_seen_at`.
+nulls the in-memory id.
+
+That final write depends on `Stopping` firing while the lifetime token is
+still live. It only does so because `PluginLifetime` is **not** linked to
+Dalamud's `LoadAsync` token — see `NexusKit.Hosting/docs/lifecycle.md`,
+"Do NOT feed `BuildAsync`'s token to `PluginLifetime`". While it was linked,
+`Stopping` fired 60 s after every load with the token already cancelled, so
+this write always bailed and the real unload fired nothing at all. If the
+`Stopping` write is ever missed again, the next startup's sweep closes the
+orphan from `last_seen_at`.
+
+## Drift reconciliation
+
+Two checks in `UpsertSightingAsync` catch a stale open encounter, and **both**
+stamp `ended_at` on the row they abandon:
+
+| Drift | Detection | Why no event covers it |
+|---|---|---|
+| Territory | cached `mCurrentTerritoryId` != the snapshot's | `TerritoryChanged` hasn't fired yet — the client is partway through a zone load. |
+| World | cached `mCurrentWorldId` != the snapshot's | A Lifestream world visit can land back in the SAME territory id on the destination world (Limsa 129 → Limsa 129), so `TerritoryChanged` never fires at all. Dalamud has no world-transfer event. |
+
+The two are mutually exclusive by construction (the territory branch nulls
+`mCurrentEncounterId`, so the world branch's pattern match can no longer
+succeed), which is why one `driftStampId` slot serves both.
+
+The territory branch used to null the id **without** stamping. That left the
+row dangling at `ended_at IS NULL` until the next session's sweep — and when
+that reload happened to land in the same zone, pass 1's unbounded
+crash-recovery branch resumed it and welded two unrelated visits into one
+encounter with a bogus duration.
+
+Invariant worth asserting after any multi-zone session:
+`SELECT COUNT(*) FROM nexus_internal_encounter WHERE ended_at IS NULL` must be
+`0` (plugin unloaded) or `1` (running, current zone).
 
 ## `seen_count` is gone
 

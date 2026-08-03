@@ -15,11 +15,13 @@ namespace NexusKit.Modules.InternalData.Encounters;
 /// <para>Lazy encounter creation: no row is written when the local player
 /// enters a zone alone — the parent encounter row is only inserted on the
 /// first sighting of a non-local character. Solo zone walks produce nothing.</para>
-/// <para>One open encounter at a time. On in-game logout the encounter is
-/// closed cleanly (ended_at stamped). On plugin unload the encounter is
-/// left open with ended_at = null; the next session's orphan-close sweep
-/// stamps it from the latest player_encounter activity. Same recovery
-/// branch covers a hard game crash.</para>
+/// <para>One open encounter at a time. On in-game logout AND on plugin
+/// unload the encounter is closed cleanly (ended_at stamped) — the unload
+/// case rides the <see cref="PluginLifecycleState.Stopping"/> transition,
+/// which fires while the lifetime token is still live. Only a hard game
+/// crash leaves the row open with ended_at = null; the next session's
+/// orphan-close sweep then stamps it from the latest player_encounter
+/// activity.</para>
 /// </summary>
 internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTracker, IDisposable
 {
@@ -205,10 +207,9 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
         //               encounter id, so mCurrentEncounterId is null here
         //               and the write branch is skipped. Keeping the case
         //               in the switch makes the state-machine intent
-        //               explicit and survives the external-cancel path
-        //               (where Stopping fires with the CT already gone,
-        //               StampEndedAtAsync bails at its IsStopping guard,
-        //               and we'd otherwise leak the in-memory id).
+        //               explicit and is cheap belt-and-braces in case a
+        //               future lifetime driver ever reaches Stopped without
+        //               having fired Stopping first.
         if (state != PluginLifecycleState.Idle
             && state != PluginLifecycleState.Stopping
             && state != PluginLifecycleState.Stopped) return;
@@ -243,7 +244,9 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
 
             // Stopped: CT is already cancelled; StampEndedAtAsync would bail
             // at its IsStopping guard anyway. Nothing to do beyond the
-            // in-memory clear above.
+            // in-memory clear above. In the normal flow the Stopping case
+            // ran first and already stamped ended_at, so there is nothing
+            // left to write here either.
         }
     }
 
@@ -305,7 +308,13 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
             // simultaneous sightings can't race two encounter rows into the DB.
             long encounterId;
             bool openedNew = false;
-            long? worldDriftStampId = null;
+            // Encounter that a drift check (territory or world) decided is
+            // stale and needs its ended_at stamped. Both branches below feed
+            // the same slot: they're mutually exclusive by construction, since
+            // the territory branch nulls mCurrentEncounterId and the world
+            // branch's `mCurrentEncounterId is { } drifted` pattern can then
+            // no longer match.
+            long? driftStampId = null;
             lock (mLock)
             {
                 // If the cached territory has drifted from the snapshot's
@@ -315,6 +324,16 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
                 if (mCurrentTerritoryId != territoryId)
                 {
                     mCurrentTerritoryId = territoryId;
+                    // Stamp the drifted encounter, mirroring what
+                    // OnTerritoryChanged does. Dropping the id on the floor
+                    // here (as this branch used to) left the row dangling at
+                    // ended_at IS NULL until the NEXT session's orphan sweep —
+                    // and when that reload happened to land in the same zone,
+                    // pass 1's unbounded crash-recovery branch resumed it and
+                    // welded two unrelated visits into one encounter with a
+                    // bogus duration. Null is fine here: it just means nothing
+                    // was open yet.
+                    driftStampId = mCurrentEncounterId;
                     mCurrentEncounterId = null;
                 }
                 // World-drift defensive check. Lifestream world visits can
@@ -339,7 +358,7 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
                     if (mCurrentWorldId is { } wOld && wNew != wOld
                         && mCurrentEncounterId is { } drifted)
                     {
-                        worldDriftStampId = drifted;
+                        driftStampId = drifted;
                         mCurrentEncounterId = null;
                     }
                     mCurrentWorldId = wNew;
@@ -355,11 +374,11 @@ internal sealed class InternalDataEncounterTracker : IInternalDataEncounterTrack
                 }
             }
 
-            // Stamp the world-drifted encounter's ended_at outside the
-            // lock. Fire-and-forget mirrors the OnTerritoryChanged path
-            // (it dispatches StampEndedAtAsync the same way after marking
-            // the encounter id null).
-            if (worldDriftStampId is { } toClose)
+            // Stamp the drifted encounter's ended_at outside the lock.
+            // Fire-and-forget mirrors the OnTerritoryChanged path (it
+            // dispatches StampEndedAtAsync the same way after marking the
+            // encounter id null).
+            if (driftStampId is { } toClose)
                 _ = Task.Run(() => StampEndedAtAsync(toClose));
 
             if (openedNew)
