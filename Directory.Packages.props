@@ -28,10 +28,10 @@
     <!-- NexusKit framework. Open-ended ranges on purpose: the local workspace
          swaps these for ProjectReferences, and CI takes the newest published
          package. Do not let a bump turn them into exact pins. -->
-    <PackageVersion Include="NexusKit.Core" Version="[0.5.0,)" />
-    <PackageVersion Include="NexusKit.GameData" Version="[0.5.0,)" />
-    <PackageVersion Include="NexusKit.Persistence" Version="[0.5.0,)" />
-    <PackageVersion Include="NexusKit.Ui" Version="[0.5.0,)" />
+    <PackageVersion Include="NexusKit.Core" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.GameData" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.Persistence" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.Ui" Version="[0.5.1,)" />
     <!-- 0.5.1 rather than 0.5.0, because that is the release the library first appeared in.
          A floor naming a version that never contained it restores fine but raises NU1603 for
          the substitution, and TreatWarningsAsErrors turns that into a failed build.
