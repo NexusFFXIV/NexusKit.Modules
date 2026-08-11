@@ -7,10 +7,10 @@ namespace NexusKit.Modules.Lodestone.Ipc;
 /// <summary>
 /// Publishes Lodestone endpoints as IPCs (JSON-serialised responses).
 /// <para>
-/// Full IPC names (assuming plugin "PlayerNexusTracker"):
+/// Full IPC names (assuming plugin "MyPlugin"):
 /// <list type="bullet">
-/// <item><c>PlayerNexusTracker.Lodestone.GetCharacterJson</c></item>
-/// <item><c>PlayerNexusTracker.Lodestone.SearchCharacterJson</c></item>
+/// <item><c>MyPlugin.Lodestone.GetCharacterJson</c></item>
+/// <item><c>MyPlugin.Lodestone.SearchCharacterJson</c></item>
 /// </list>
 /// </para>
 /// </summary>

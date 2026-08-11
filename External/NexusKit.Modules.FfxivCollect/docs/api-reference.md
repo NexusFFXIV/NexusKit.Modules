@@ -125,15 +125,15 @@ Rows are upserted on every successful fetch.
 
 ## Published IPCs
 
-Names assume the plugin is `PlayerNexusTracker`; replace with your plugin
+Names assume the plugin is `MyPlugin`; replace with your plugin
 name otherwise.
 
 | Full name | Signature | Returns |
 |---|---|---|
-| `PlayerNexusTracker.FfxivCollect.GetCharacterJson` | `Func<ulong, Task<string?>>` | JSON of `Character` |
-| `PlayerNexusTracker.FfxivCollect.GetMountsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Mount>` |
-| `PlayerNexusTracker.FfxivCollect.GetMinionsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Minion>` |
-| `PlayerNexusTracker.FfxivCollect.GetAchievementsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Achievement>` |
+| `MyPlugin.FfxivCollect.GetCharacterJson` | `Func<ulong, Task<string?>>` | JSON of `Character` |
+| `MyPlugin.FfxivCollect.GetMountsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Mount>` |
+| `MyPlugin.FfxivCollect.GetMinionsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Minion>` |
+| `MyPlugin.FfxivCollect.GetAchievementsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Achievement>` |
 
 All four pipe through `IFfxivCollectClient`, so they respect the same
 `ModuleEnabled` / `CacheEnabled` matrix above. A foreign plugin invoking an

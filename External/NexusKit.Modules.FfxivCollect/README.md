@@ -53,21 +53,21 @@ short-circuits to `null` — no HTTP, no cache read.
 
 ## Published IPCs
 
-Full names assume the plugin's name is `PlayerNexusTracker`; the actual
+Full names assume the plugin's name is `MyPlugin`; the actual
 prefix is `IPluginContext.PluginName`.
 
 | IPC name | Signature | Returns |
 |---|---|---|
-| `PlayerNexusTracker.FfxivCollect.GetCharacterJson` | `Func<ulong, Task<string?>>` | JSON of `Character` |
-| `PlayerNexusTracker.FfxivCollect.GetMountsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Mount>` |
-| `PlayerNexusTracker.FfxivCollect.GetMinionsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Minion>` |
-| `PlayerNexusTracker.FfxivCollect.GetAchievementsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Achievement>` |
+| `MyPlugin.FfxivCollect.GetCharacterJson` | `Func<ulong, Task<string?>>` | JSON of `Character` |
+| `MyPlugin.FfxivCollect.GetMountsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Mount>` |
+| `MyPlugin.FfxivCollect.GetMinionsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Minion>` |
+| `MyPlugin.FfxivCollect.GetAchievementsJson` | `Func<ulong, Task<string?>>` | JSON of `ListResponse<Achievement>` |
 
 Foreign plugins consume via:
 
 ```csharp
 var func = pi.GetIpcSubscriber<ulong, Task<string?>>(
-    "PlayerNexusTracker.FfxivCollect.GetCharacterJson");
+    "MyPlugin.FfxivCollect.GetCharacterJson");
 var json = await func.InvokeFunc(lodestoneId);
 ```
 

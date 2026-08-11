@@ -9,12 +9,12 @@ namespace NexusKit.Modules.FfxivCollect.Ipc;
 /// without depending on our types. Each function returns the response as a
 /// JSON string; consumers deserialize against their own model.
 /// <para>
-/// Full IPC names (assuming plugin "PlayerNexusTracker"):
+/// Full IPC names (assuming plugin "MyPlugin"):
 /// <list type="bullet">
-/// <item><c>PlayerNexusTracker.FfxivCollect.GetCharacterJson</c></item>
-/// <item><c>PlayerNexusTracker.FfxivCollect.GetMountsJson</c></item>
-/// <item><c>PlayerNexusTracker.FfxivCollect.GetMinionsJson</c></item>
-/// <item><c>PlayerNexusTracker.FfxivCollect.GetAchievementsJson</c></item>
+/// <item><c>MyPlugin.FfxivCollect.GetCharacterJson</c></item>
+/// <item><c>MyPlugin.FfxivCollect.GetMountsJson</c></item>
+/// <item><c>MyPlugin.FfxivCollect.GetMinionsJson</c></item>
+/// <item><c>MyPlugin.FfxivCollect.GetAchievementsJson</c></item>
 /// </list>
 /// </para>
 /// </summary>

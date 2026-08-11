@@ -32,6 +32,11 @@
     <PackageVersion Include="NexusKit.GameData" Version="[0.5.0,)" />
     <PackageVersion Include="NexusKit.Persistence" Version="[0.5.0,)" />
     <PackageVersion Include="NexusKit.Ui" Version="[0.5.0,)" />
+    <!-- The sync norm, consumed by NexusKit.Modules.Sync. Same open-ended range rule: the
+         workspace swaps it for a ProjectReference and CI takes the newest published package.
+         Do not let a bump turn it into an exact pin — a pinned protocol package is how a
+         client ends up unable to follow a server that has moved on. -->
+    <PackageVersion Include="NexusKit.Sync" Version="[0.5.0,)" />
   </ItemGroup>
 
   <ItemGroup>
