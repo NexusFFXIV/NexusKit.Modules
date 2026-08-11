@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>NexusKit.Modules.Sync</RootNamespace>
+		<AssemblyName>NexusKit.Modules.Sync</AssemblyName>
+		<Description>Client side of the NexusKit.Sync protocol: REST transport, API-key handling and connection registration. Talks to any server speaking it; several connections at once are the normal case.</Description>
+		<IsPackable>true</IsPackable>
+		<Deterministic>true</Deterministic>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>CS1591</NoWarn>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<Platforms>x64</Platforms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Http" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The protocol norm, from the NexusKit framework. Deliberately the only sync package
+		     here: a client needs the contract model and ISyncProtocol, nothing from the server. -->
+		<PackageReference Include="NexusKit.Sync" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" />
+		<None Include="docs\**\*.md" />
+	</ItemGroup>
+</Project>
