@@ -25,22 +25,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- NexusKit framework. Open-ended ranges on purpose: the local workspace
-         swaps these for ProjectReferences, and CI takes the newest published
-         package. Do not let a bump turn them into exact pins. -->
+    <!-- The NexusKit framework. All five move together, because NexusKit publishes them
+         together — a floor that lags behind the others names a version the feed may never
+         have carried, which restores the substitute and fails the build on NU1603.
+
+         Open-ended on purpose. The workspace swaps these for ProjectReferences and CI takes
+         the newest published package; an exact pin would stop a consumer picking up a patch.
+         For NexusKit.Sync it would be worse than inconvenient: pinning the protocol is how a
+         client ends up unable to follow a server that has moved on. -->
     <PackageVersion Include="NexusKit.Core" Version="[0.5.1,)" />
     <PackageVersion Include="NexusKit.GameData" Version="[0.5.1,)" />
     <PackageVersion Include="NexusKit.Persistence" Version="[0.5.1,)" />
-    <PackageVersion Include="NexusKit.Ui" Version="[0.5.1,)" />
-    <!-- 0.5.1 rather than 0.5.0, because that is the release the library first appeared in.
-         A floor naming a version that never contained it restores fine but raises NU1603 for
-         the substitution, and TreatWarningsAsErrors turns that into a failed build.
-
-         The sync norm, consumed by NexusKit.Modules.Sync. Same open-ended range rule: the
-         workspace swaps it for a ProjectReference and CI takes the newest published package.
-         Do not let a bump turn it into an exact pin — a pinned protocol package is how a
-         client ends up unable to follow a server that has moved on. -->
     <PackageVersion Include="NexusKit.Sync" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.Ui" Version="[0.5.1,)" />
   </ItemGroup>
 
   <ItemGroup>
