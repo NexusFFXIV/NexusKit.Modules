@@ -19,9 +19,9 @@
     <!-- Keep these on one version. EF Core (via NexusKit.Persistence) pulls
          specific Microsoft.Extensions.* versions transitively, so a split
          between the two families is exactly what produces NU1605. -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.10" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,15 +33,15 @@
          the newest published package; an exact pin would stop a consumer picking up a patch.
          For NexusKit.Sync it would be worse than inconvenient: pinning the protocol is how a
          client ends up unable to follow a server that has moved on. -->
-    <PackageVersion Include="NexusKit.Core" Version="[0.5.1,)" />
-    <PackageVersion Include="NexusKit.GameData" Version="[0.5.1,)" />
-    <PackageVersion Include="NexusKit.Persistence" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.Core" Version="0.6.0" />
+    <PackageVersion Include="NexusKit.GameData" Version="0.6.0" />
+    <PackageVersion Include="NexusKit.Persistence" Version="0.6.0" />
     <PackageVersion Include="NexusKit.Sync" Version="[0.6.0,)" />
-    <PackageVersion Include="NexusKit.Ui" Version="[0.5.1,)" />
+    <PackageVersion Include="NexusKit.Ui" Version="0.6.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageVersion Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageVersion Include="HtmlAgilityPack" Version="1.13.0" />
     <PackageVersion Include="NetStone" Version="1.4.1" />
     <PackageVersion Include="MinVer" Version="6.0.0" />
   </ItemGroup>
