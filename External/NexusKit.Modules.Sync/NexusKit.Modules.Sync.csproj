@@ -23,6 +23,7 @@
 	<ItemGroup>
 		<!-- The protocol norm, from the NexusKit framework. Deliberately the only sync package
 		     here: a client needs the contract model and ISyncProtocol, nothing from the server. -->
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
 		<PackageReference Include="NexusKit.Sync" />
 	</ItemGroup>
 
