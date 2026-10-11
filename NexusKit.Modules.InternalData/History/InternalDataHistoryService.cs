@@ -71,6 +71,33 @@ internal sealed class InternalDataHistoryService : IInternalDataHistoryService, 
         }
     }
 
+    public async Task<IReadOnlyList<PlayerHistoryEntry>> GetTimelineAsync(
+        ulong contentId, PlayerHistoryKind? kind = null, DateTime? fromUtc = null,
+        DateTime? untilUtc = null, int limit = 200, CancellationToken ct = default)
+    {
+        if (contentId == 0 || limit <= 0) return Array.Empty<PlayerHistoryEntry>();
+        try
+        {
+            await using var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false);
+            var query = ctx.Set<InternalPlayerHistoryEntity>()
+                .AsNoTracking()
+                .Where(x => x.ContentId == contentId);
+            if (kind is { } selected) query = query.Where(x => x.Kind == selected);
+            if (fromUtc is { } from) query = query.Where(x => x.ChangedAt >= from);
+            if (untilUtc is { } until) query = query.Where(x => x.ChangedAt < until);
+            return await query.OrderByDescending(x => x.ChangedAt).ThenByDescending(x => x.Id)
+                .Take(Math.Clamp(limit, 1, 1000))
+                .Select(x => new PlayerHistoryEntry(x.Id, x.ContentId, x.Kind,
+                    x.ChangedAt, x.OldValue, x.NewValue, x.IsRead))
+                .ToListAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            mLog.LogWarning(ex, "Filtered history read failed for {ContentId}", contentId);
+            return Array.Empty<PlayerHistoryEntry>();
+        }
+    }
+
     public async Task<IReadOnlyDictionary<ulong, IReadOnlySet<PlayerHistoryKind>>> GetUnreadHistoryKindsByContentIdAsync(
         CancellationToken ct = default)
     {
