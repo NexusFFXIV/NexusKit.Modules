@@ -14,7 +14,7 @@ using NexusKit.Persistence.Settings;
 
 namespace NexusKit.Modules.Lodestone.Clients;
 
-internal sealed class LodestoneClient : ILodestoneClient
+internal sealed class LodestoneClient : ILodestoneClient, IAsyncDisposable
 {
     private readonly ISettingsStore mSettingsStore;
     private readonly INexusDbContextFactory mDbFactory;
@@ -25,6 +25,11 @@ internal sealed class LodestoneClient : ILodestoneClient
     private NetStone.LodestoneClient? mNetClient;
     private string? mNetClientBaseAddress;
     private readonly SemaphoreSlim mNetClientLock = new(1, 1);
+    private readonly object mCallLock = new();
+    private TaskCompletionSource mCallsIdle = CompletedSource();
+    private int mActiveCalls;
+    private bool mDisposing;
+    private readonly string mInstanceId = Guid.NewGuid().ToString("N")[..8];
 
     public LodestoneClient(
         ISettingsStore settingsStore,
@@ -38,12 +43,66 @@ internal sealed class LodestoneClient : ILodestoneClient
         mLog = log;
         mLifetime = lifetime;
         mLocalization = localization;
+        mLifetime.StateChanged += OnLifecycleChanged;
+        mLog.LogInformation("Lodestone client started. Instance={Instance}", mInstanceId);
         // One-shot session-startup cleanup of expired rows. Read-side
         // TryReadCacheAsync already skips expired entries, but never deletes
         // them — without this sweep the table grew unbounded (21+ MB of mostly
         // stale HTML scrapes in the wild). Fire-and-forget on the threadpool so
         // DI construction stays cheap; the DELETE is a single indexed scan.
         _ = Task.Run(PruneExpiredCacheAsync);
+    }
+
+    private static TaskCompletionSource CompletedSource()
+        => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private void OnLifecycleChanged(PluginLifecycleState state)
+    {
+        if (state != PluginLifecycleState.Stopping) return;
+        lock (mCallLock)
+        {
+            mDisposing = true;
+            mLog.LogWarning("Lodestone shutdown requested. Instance={Instance}, ActiveNetStoneCalls={Active}",
+                mInstanceId, mActiveCalls);
+        }
+    }
+
+    private bool TryBeginNetStoneCall(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (mCallLock)
+        {
+            if (mDisposing || mLifetime.IsStopping || mDbFactory.IsStopping)
+            {
+                mLog.LogWarning("NetStone call rejected during shutdown. Instance={Instance}, ActiveNetStoneCalls={Active}",
+                    mInstanceId, mActiveCalls);
+                return false;
+            }
+            if (mActiveCalls++ == 0) mCallsIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            return true;
+        }
+    }
+
+    private void EndNetStoneCall()
+    {
+        lock (mCallLock)
+        {
+            if (--mActiveCalls == 0) mCallsIdle.TrySetResult();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Task idle;
+        lock (mCallLock)
+        {
+            mDisposing = true;
+            idle = mActiveCalls == 0 ? Task.CompletedTask : mCallsIdle.Task;
+        }
+        await idle.ConfigureAwait(false);
+        mLog.LogInformation("Lodestone shutdown drain completed. Instance={Instance}", mInstanceId);
+        mLifetime.StateChanged -= OnLifecycleChanged;
+        mNetClientLock.Dispose();
     }
 
     private async Task PruneExpiredCacheAsync()
@@ -94,7 +153,9 @@ internal sealed class LodestoneClient : ILodestoneClient
         NetStone.Model.Parseables.Character.LodestoneCharacter? ch;
         try
         {
-            ch = await client.GetCharacter(lodestoneId.ToString()).ConfigureAwait(false);
+            if (!TryBeginNetStoneCall(ct)) return null;
+            try { ch = await client.GetCharacter(lodestoneId.ToString()).ConfigureAwait(false); }
+            finally { EndNetStoneCall(); }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -175,7 +236,9 @@ internal sealed class LodestoneClient : ILodestoneClient
         NetStone.Model.Parseables.Search.Character.CharacterSearchPage? page;
         try
         {
-            page = await client.SearchCharacter(query).ConfigureAwait(false);
+            if (!TryBeginNetStoneCall(ct)) return null;
+            try { page = await client.SearchCharacter(query).ConfigureAwait(false); }
+            finally { EndNetStoneCall(); }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -232,6 +295,7 @@ internal sealed class LodestoneClient : ILodestoneClient
         if (!CanCallNetStone(ct)) return null;
 
         object? cj;
+        if (!TryBeginNetStoneCall(ct)) return null;
         try
         {
             // Method exists on NetStone's LodestoneClient but its return type sits in a
@@ -251,6 +315,7 @@ internal sealed class LodestoneClient : ILodestoneClient
             mLog.LogWarning(ex, "Lodestone GetCharacterClassJob failed for {Id}", lodestoneId);
             return null;
         }
+        finally { EndNetStoneCall(); }
         if (cj is null) return null;
 
         var results = new List<LodestoneClassJob>();
@@ -304,6 +369,7 @@ internal sealed class LodestoneClient : ILodestoneClient
         // returns null when there are no more pages. Start with page 1 via the explicit
         // method call, then follow the chain.
         object? page;
+        if (!TryBeginNetStoneCall(ct)) return null;
         try
         {
             var task = (Task?)method.Invoke(client, new object[] { lodestoneId.ToString(), 1 });
@@ -316,6 +382,7 @@ internal sealed class LodestoneClient : ILodestoneClient
             mLog.LogWarning(ex, "Lodestone GetCharacterAchievement failed for {Id} page 1", lodestoneId);
             return null;
         }
+        finally { EndNetStoneCall(); }
 
         var visited = 0;
         while (page is not null && visited < maxPages)
@@ -399,6 +466,7 @@ internal sealed class LodestoneClient : ILodestoneClient
         if (!CanCallNetStone(ct)) return null;
 
         object? fc;
+        if (!TryBeginNetStoneCall(ct)) return null;
         try
         {
             var method = client.GetType().GetMethod("GetFreeCompany", new[] { typeof(string) });
@@ -413,6 +481,7 @@ internal sealed class LodestoneClient : ILodestoneClient
             mLog.LogWarning(ex, "Lodestone GetFreeCompany failed for {Id}", freeCompanyLodestoneId);
             return null;
         }
+        finally { EndNetStoneCall(); }
         if (fc is null) return null;
 
         var result = new LodestoneFreeCompany
@@ -476,6 +545,7 @@ internal sealed class LodestoneClient : ILodestoneClient
         const int maxHops = 50;
 
         object? page;
+        if (!TryBeginNetStoneCall(ct)) return null;
         try
         {
             var task = (Task?)method.Invoke(client, new object[] { lodestoneId.ToString() });
@@ -488,6 +558,7 @@ internal sealed class LodestoneClient : ILodestoneClient
             mLog.LogWarning(ex, "Lodestone {Method} failed for {Id} page 1", netStoneMethod, lodestoneId);
             return null;
         }
+        finally { EndNetStoneCall(); }
 
         var hops = 0;
         while (page is not null && hops < maxHops)
@@ -551,7 +622,10 @@ internal sealed class LodestoneClient : ILodestoneClient
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         var sharedHttp = client is null ? null : TryGetNetStoneHttpClient(client);
         var scraper = new DirectGearScraper(sharedHttp, mLog);
-        var results = await scraper.FetchGearSlotsAsync(lodestoneId, LodestoneBaseAddress, ct).ConfigureAwait(false);
+        if (!TryBeginNetStoneCall(ct)) return null;
+        IReadOnlyList<LodestoneGearSlot> results;
+        try { results = await scraper.FetchGearSlotsAsync(lodestoneId, LodestoneBaseAddress, ct).ConfigureAwait(false); }
+        finally { EndNetStoneCall(); }
 
         await WriteListCacheIfNonEmptyAsync(cacheKey, results, settings, "gear", lodestoneId, ct).ConfigureAwait(false);
         return results;
