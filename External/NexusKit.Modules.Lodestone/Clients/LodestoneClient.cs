@@ -89,6 +89,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         NetStone.Model.Parseables.Character.LodestoneCharacter? ch;
         try
@@ -163,6 +164,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         var query = new CharacterSearchQuery
         {
@@ -227,6 +229,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         object? cj;
         try
@@ -287,6 +290,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         var method = client.GetType().GetMethod("GetCharacterAchievement",
             new[] { typeof(string), typeof(int) });
@@ -392,6 +396,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         object? fc;
         try
@@ -461,6 +466,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 
         var client = await GetNetClientAsync(ct).ConfigureAwait(false);
         if (client is null) return null;
+        if (!CanCallNetStone(ct)) return null;
 
         var method = client.GetType().GetMethod(netStoneMethod, new[] { typeof(string) });
         if (method is null) return null;
@@ -910,6 +916,12 @@ internal sealed class LodestoneClient : ILodestoneClient
         {
             mNetClientLock.Release();
         }
+    }
+
+    private bool CanCallNetStone(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return !mLifetime.IsStopping && !mDbFactory.IsStopping;
     }
 
     private async Task<LodestoneSettings> GetSettingsAsync(CancellationToken ct)
