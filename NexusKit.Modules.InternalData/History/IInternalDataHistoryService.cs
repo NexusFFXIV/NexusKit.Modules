@@ -26,6 +26,14 @@ public interface IInternalDataHistoryService
         int limit = 200,
         CancellationToken ct = default);
 
+    Task<PlayerHistoryPage> GetTimelinePageAsync(
+        ulong contentId,
+        PlayerHistoryKind? kind = null,
+        DateTime? fromUtc = null,
+        DateTime? untilUtc = null,
+        int limit = 200,
+        CancellationToken ct = default);
+
     /// <summary>Returns, per <c>ContentId</c>, the distinct <see cref="PlayerHistoryKind"/>s
     /// that have at least one row still flagged unread (<c>is_read = 0</c>). Drives the
     /// player-list yellow dot AND its hover-tooltip — once every row is read, the
