@@ -97,6 +97,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
 
     public event Action<ulong, RefreshCategory>? ExhaustedAttempts;
 
+    public event Action<RefreshOutcome>? OutcomeProduced;
+
     public PlayerRefreshQueueService(
         INexusDbContextFactory db,
         IExternalDataPlayerService players,
@@ -584,23 +586,46 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 
-        if (row.Category == RefreshCategory.LodestoneId)
+        var startedAt = row.LastAttemptedAt ?? DateTime.UtcNow;
+        AttemptResult result;
+        try
         {
-            await ProcessLodestoneIdAsync(row, ct).ConfigureAwait(false);
-            return;
+            result = row.Category == RefreshCategory.LodestoneId
+                ? await ProcessLodestoneIdAsync(row, ct).ConfigureAwait(false)
+                : await ProcessSubResourceAsync(row, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            mLog.LogWarning(ex, "Refresh attempt failed for {Cid}/{Cat}",
+                row.ContentId, row.Category);
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct)
+                .ConfigureAwait(false);
+            result = AttemptResult.Failed("unhandled_exception", exhausted, "Queue");
         }
 
-        await ProcessSubResourceAsync(row, ct).ConfigureAwait(false);
+        OutcomeProduced?.Invoke(new RefreshOutcome(
+            row.ContentId,
+            row.Category,
+            result.Status,
+            row.AttemptCount,
+            startedAt,
+            DateTime.UtcNow,
+            new[] { new RefreshSourceStatus(result.Source, result.SourceState, result.ErrorCode) },
+            result.ErrorCode,
+            result.IsExhausted));
+        if (result.Status == RefreshOutcomeStatus.Succeeded)
+            Completed?.Invoke(row.ContentId, row.Category);
     }
 
-    private async Task ProcessLodestoneIdAsync(InternalRefreshQueueEntity row, CancellationToken ct)
+    private async Task<AttemptResult> ProcessLodestoneIdAsync(InternalRefreshQueueEntity row, CancellationToken ct)
     {
         var obs = await LookupObservationAsync(row.ContentId, ct).ConfigureAwait(false);
         if (obs is null)
         {
             // Observation went away between enqueue and pick — drop the task.
             await MarkDoneAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            return AttemptResult.Skipped("observation_missing", "Queue");
         }
 
         // Already resolved (race: the watcher or another path landed an id
@@ -611,7 +636,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             await CascadeStaleSubResourcesAsync(row.ContentId, obs.LodestoneId.Value, row.Priority, ct)
                 .ConfigureAwait(false);
             await MarkDoneAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            return AttemptResult.Succeeded("LocalState");
         }
 
         var worldName = mLookups.GetWorldName(obs.HomeWorldId);
@@ -623,8 +648,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             // cap eventually stops the row. Returning silently here used to
             // leave LastFailedAt unchanged, which let the worker re-pick the
             // row every WorkerGap until the cap was hit — a tight loop.
-            await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
+            return AttemptResult.Failed("invalid_observation", exhausted, "Lodestone");
         }
 
         var results = await mPlayers.SearchAsync(obs.Name, worldName, ct).ConfigureAwait(false);
@@ -640,8 +665,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         {
             // No hit — leave the row failed; backoff will retry it later in
             // case the character shows up on Lodestone after a relog.
-            await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
+            return AttemptResult.Failed("no_match", exhausted, "Lodestone");
         }
 
         await mWatcher.SetLodestoneIdAsync(row.ContentId, match.LodestoneId, ct).ConfigureAwait(false);
@@ -649,10 +674,10 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             .ConfigureAwait(false);
 
         await MarkDoneAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-        Completed?.Invoke(row.ContentId, row.Category);
+        return AttemptResult.Succeeded("Lodestone");
     }
 
-    private async Task ProcessSubResourceAsync(InternalRefreshQueueEntity row, CancellationToken ct)
+    private async Task<AttemptResult> ProcessSubResourceAsync(InternalRefreshQueueEntity row, CancellationToken ct)
     {
         var obs = await LookupObservationAsync(row.ContentId, ct).ConfigureAwait(false);
         if (obs is null || obs.LodestoneId is not { } lid)
@@ -660,8 +685,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             // No lodestone id (yet) → can't do remote fetch. Mark failed so
             // backoff kicks in; the LodestoneId task should land first and
             // unblock us.
-            await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
+            return AttemptResult.Failed("missing_lodestone_id", exhausted, "ExternalData");
         }
 
         var include = MapCategoryToInclude(row.Category);
@@ -678,8 +703,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         var fetched = await mPlayers.GetAsync(lid, include, forceLatest: true, ct).ConfigureAwait(false);
         if (fetched is null)
         {
-            await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
+            return AttemptResult.Failed("no_data", exhausted, "ExternalData");
         }
 
         // Per-category success check: identity can resolve via either
@@ -693,12 +718,12 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         // for genuinely-permanent-missing data like a private profile).
         if (!CategorySucceeded(fetched, row.Category, obs))
         {
-            await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-            return;
+            var exhausted = await MarkFailedAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
+            return AttemptResult.Failed("category_data_missing", exhausted, "ExternalData");
         }
 
         await MarkDoneAsync(row.ContentId, row.Category, ct).ConfigureAwait(false);
-        Completed?.Invoke(row.ContentId, row.Category);
+        return AttemptResult.Succeeded("ExternalData");
     }
 
     private async Task CascadeStaleSubResourcesAsync(
@@ -724,7 +749,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task MarkFailedAsync(ulong contentId, RefreshCategory category, CancellationToken ct)
+    private async Task<bool> MarkFailedAsync(ulong contentId, RefreshCategory category, CancellationToken ct)
     {
         var exhausted = false;
         var triggerSelfHeal = false;
@@ -734,7 +759,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
             var existing = await ctx.Set<InternalRefreshQueueEntity>()
                 .FirstOrDefaultAsync(e => e.ContentId == contentId && e.Category == category, ct)
                 .ConfigureAwait(false);
-            if (existing is null) return;
+            if (existing is null) return false;
             existing.LastFailedAt = DateTime.UtcNow;
             await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
             // ProcessOneAsync stamps AttemptCount BEFORE the category-specific
@@ -765,6 +790,24 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         if (triggerSelfHeal)
             await TrySelfHealAsync(contentId, category, ct).ConfigureAwait(false);
         if (exhausted) ExhaustedAttempts?.Invoke(contentId, category);
+        return exhausted;
+    }
+
+    private sealed record AttemptResult(
+        RefreshOutcomeStatus Status,
+        string Source,
+        RefreshSourceState SourceState,
+        string? ErrorCode,
+        bool IsExhausted)
+    {
+        public static AttemptResult Succeeded(string source)
+            => new(RefreshOutcomeStatus.Succeeded, source, RefreshSourceState.Succeeded, null, false);
+
+        public static AttemptResult Skipped(string errorCode, string source)
+            => new(RefreshOutcomeStatus.Skipped, source, RefreshSourceState.NotAttempted, errorCode, false);
+
+        public static AttemptResult Failed(string errorCode, bool exhausted, string source)
+            => new(RefreshOutcomeStatus.Failed, source, RefreshSourceState.Failed, errorCode, exhausted);
     }
 
     /// <summary>
