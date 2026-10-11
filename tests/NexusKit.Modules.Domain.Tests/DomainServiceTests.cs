@@ -1,6 +1,9 @@
 using NexusKit.Modules.InternalData.History;
 using NexusKit.Modules.InternalData.Refresh;
 using NexusKit.Modules.PlayerEnrichment;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using Xunit;
 
 namespace NexusKit.Modules.Domain.Tests;
@@ -101,5 +104,31 @@ public sealed class DomainServiceTests
 
         foreach (var category in Enum.GetValues<RefreshCategory>())
             Assert.True(policy.IsEnabled(category));
+    }
+
+    [Fact]
+    public async Task SnapshotMigrationIsIdempotentAndCreatesExpectedSchema()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<DbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new DbContext(options);
+        var migrationType = typeof(PlayerSnapshot).Assembly.GetType(
+            "NexusKit.Modules.InternalData.Persistence.AddPlayerSnapshotTable",
+            throwOnError: true)!;
+        var migration = Activator.CreateInstance(migrationType)!;
+        var up = migrationType.GetMethod("UpAsync", BindingFlags.Instance | BindingFlags.Public)!;
+
+        await (Task)up.Invoke(migration, new object[] { context, CancellationToken.None })!;
+        await (Task)up.Invoke(migration, new object[] { context, CancellationToken.None })!;
+
+        var columns = await context.Database.SqlQueryRaw<string>(
+                "SELECT name AS Value FROM pragma_table_info('nexus_internal_player_snapshot')")
+            .ToListAsync();
+        Assert.Contains("content_id", columns);
+        Assert.Contains("captured_at", columns);
+        Assert.Contains("values_json", columns);
     }
 }
