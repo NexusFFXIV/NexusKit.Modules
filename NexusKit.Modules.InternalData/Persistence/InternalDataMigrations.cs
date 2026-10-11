@@ -45,10 +45,11 @@ internal sealed class NormalizePlayerSnapshots : IMigration
     public async Task UpAsync(DbContext ctx, CancellationToken ct)
     {
         var rows = await ctx.Set<InternalPlayerSnapshotEntity>()
-            .OrderBy(x => x.ContentId)
+            .ToListAsync(ct).ConfigureAwait(false);
+        rows = rows.OrderBy(x => x.ContentId)
             .ThenBy(x => x.CapturedAt)
             .ThenBy(x => x.Id)
-            .ToListAsync(ct).ConfigureAwait(false);
+            .ToList();
         var previousByContent = new Dictionary<ulong, string>();
 
         foreach (var row in rows)
