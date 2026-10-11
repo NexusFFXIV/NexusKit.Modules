@@ -30,9 +30,11 @@
 		<EmbeddedResource Update="Resources\Strings.resx">
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
+			<LogicalName>$(RootNamespace).Resources.Strings.resources</LogicalName>
 		</EmbeddedResource>
 		<EmbeddedResource Update="Resources\Strings.de.resx">
 			<DependentUpon>Strings.resx</DependentUpon>
+			<LogicalName>$(RootNamespace).Resources.Strings.de.resources</LogicalName>
 		</EmbeddedResource>
 	</ItemGroup>
 
