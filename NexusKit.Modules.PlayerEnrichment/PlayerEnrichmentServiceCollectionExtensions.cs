@@ -58,6 +58,7 @@ public static class PlayerEnrichmentServiceCollectionExtensions
         services.AddSingleton<PlayerRefreshQueueService>();
         services.AddSingleton<IPlayerRefreshQueueService>(sp => sp.GetRequiredService<PlayerRefreshQueueService>());
         services.AddSingleton<IRefreshRunSummaryService, RefreshRunSummaryService>();
+        services.AddSingleton<RefreshMetricsCollector>();
 
         // Exhausted-row pruning used to live inline in the refresh-queue's
         // worker loop; D6 moved it to the shared DB-maintenance contributor
