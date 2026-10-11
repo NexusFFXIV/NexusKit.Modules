@@ -51,7 +51,7 @@ public sealed class PlayerSnapshotStore : IDisposable
             var result = new List<PlayerSnapshotRecord>(rows.Count);
             foreach (var row in rows)
             {
-                var values = JsonSerializer.Deserialize<Dictionary<string, string?>>(row.ValuesJson);
+                var values = NormalizeValues(JsonSerializer.Deserialize<Dictionary<string, string?>>(row.ValuesJson));
                 if (values is null) continue;
                 result.Add(new(row.Id, new(row.ContentId, row.CapturedAt, values)));
             }
@@ -107,7 +107,7 @@ public sealed class PlayerSnapshotStore : IDisposable
             {
                 await using var ctx = await mDb.CreateDbContextAsync(mDb.LifetimeToken)
                     .ConfigureAwait(false);
-                var valuesJson = SerializeValues(current.Values);
+                var valuesJson = SerializeValues(NormalizeValues(current.Values));
                 var latest = await ctx.Set<InternalPlayerSnapshotEntity>()
                     .Where(x => x.ContentId == current.ContentId)
                     .OrderByDescending(x => x.CapturedAt)
@@ -143,12 +143,27 @@ public sealed class PlayerSnapshotStore : IDisposable
         {
             ["name"] = player.Name,
             ["home_world_id"] = player.HomeWorldId.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["class_job_id"] = player.ClassJobId.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["level"] = player.Level.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["active_class_job"] = $"{player.ClassJobId.ToString(System.Globalization.CultureInfo.InvariantCulture)}:{player.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
             ["race"] = player.Race.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["gender"] = player.Gender.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["company_tag"] = player.CompanyTag,
         });
+
+    private static Dictionary<string, string?> NormalizeValues(IReadOnlyDictionary<string, string?>? values)
+    {
+        var normalized = values is null
+            ? new Dictionary<string, string?>(StringComparer.Ordinal)
+            : new Dictionary<string, string?>(values, StringComparer.Ordinal);
+        if (!normalized.ContainsKey("active_class_job")
+            && normalized.TryGetValue("class_job_id", out var job)
+            && normalized.TryGetValue("level", out var level))
+        {
+            normalized["active_class_job"] = $"{job}:{level}";
+            normalized.Remove("class_job_id");
+            normalized.Remove("level");
+        }
+        return normalized;
+    }
 
     public void Dispose()
     {
