@@ -12,6 +12,7 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     private readonly RefreshMetricsCollector mMetrics;
     private readonly INexusDbContextFactory mDb;
     private readonly ILogger<RefreshRunSummaryService> mLog;
+    private readonly object mGate = new();
     private readonly HashSet<(ulong ContentId, RefreshCategory Category)> mPending = new();
     private RefreshRunSummaryBuilder? mBuilder;
 
@@ -31,8 +32,12 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
 
     public RefreshRunSummary Start()
     {
-        mBuilder = new RefreshRunSummaryBuilder();
-        return mBuilder.Complete();
+        lock (mGate)
+        {
+            mBuilder = new RefreshRunSummaryBuilder();
+            mPending.Clear();
+            return mBuilder.Complete();
+        }
     }
 
     public void Record(RefreshOutcome outcome)
@@ -40,16 +45,24 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         mMetrics.Record(outcome);
         // Background refreshes must still be diagnosable when no UI button
         // explicitly started a run; the next explicit Complete closes it.
-        (mBuilder ??= new RefreshRunSummaryBuilder()).Add(outcome);
-        mPending.Remove((outcome.ContentId, outcome.Category));
-        if (mPending.Count == 0)
+        var drained = false;
+        lock (mGate)
+        {
+            (mBuilder ??= new RefreshRunSummaryBuilder()).Add(outcome);
+            mPending.Remove((outcome.ContentId, outcome.Category));
+            drained = mPending.Count == 0;
+        }
+        if (drained)
             _ = CompleteAndPersistSafelyAsync();
     }
 
     private void OnEnqueued(ulong contentId, RefreshCategory category)
     {
-        mBuilder ??= new RefreshRunSummaryBuilder();
-        mPending.Add((contentId, category));
+        lock (mGate)
+        {
+            mBuilder ??= new RefreshRunSummaryBuilder();
+            mPending.Add((contentId, category));
+        }
     }
 
     private async Task CompleteAndPersistSafelyAsync()
@@ -60,10 +73,14 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
 
     public RefreshRunSummary Complete()
     {
-        var builder = mBuilder ?? new RefreshRunSummaryBuilder();
-        Latest = builder.Complete();
-        mBuilder = null;
-        return Latest;
+        lock (mGate)
+        {
+            var builder = mBuilder ?? new RefreshRunSummaryBuilder();
+            Latest = builder.Complete();
+            mBuilder = null;
+            mPending.Clear();
+            return Latest;
+        }
     }
 
     public async Task<RefreshRunSummary> CompleteAsync(CancellationToken ct = default)
