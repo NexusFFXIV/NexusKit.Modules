@@ -3,11 +3,13 @@ namespace NexusKit.Modules.PlayerEnrichment;
 public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDisposable
 {
     private readonly IPlayerRefreshQueueService mQueue;
+    private readonly RefreshMetricsCollector mMetrics;
     private RefreshRunSummaryBuilder? mBuilder;
 
-    public RefreshRunSummaryService(IPlayerRefreshQueueService queue)
+    public RefreshRunSummaryService(IPlayerRefreshQueueService queue, RefreshMetricsCollector metrics)
     {
         mQueue = queue;
+        mMetrics = metrics;
         mQueue.OutcomeProduced += Record;
     }
 
@@ -19,7 +21,11 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         return mBuilder.Complete();
     }
 
-    public void Record(RefreshOutcome outcome) => mBuilder?.Add(outcome);
+    public void Record(RefreshOutcome outcome)
+    {
+        mMetrics.Record(outcome);
+        mBuilder?.Add(outcome);
+    }
 
     public RefreshRunSummary Complete()
     {
