@@ -75,7 +75,15 @@ internal sealed class InternalDataHistoryService : IInternalDataHistoryService, 
         ulong contentId, PlayerHistoryKind? kind = null, DateTime? fromUtc = null,
         DateTime? untilUtc = null, int limit = 200, CancellationToken ct = default)
     {
-        if (contentId == 0 || limit <= 0) return Array.Empty<PlayerHistoryEntry>();
+        return (await GetTimelinePageAsync(contentId, kind, fromUtc, untilUtc, limit, ct)
+            .ConfigureAwait(false)).Entries;
+    }
+
+    public async Task<PlayerHistoryPage> GetTimelinePageAsync(
+        ulong contentId, PlayerHistoryKind? kind = null, DateTime? fromUtc = null,
+        DateTime? untilUtc = null, int limit = 200, CancellationToken ct = default)
+    {
+        if (contentId == 0 || limit <= 0) return new(Array.Empty<PlayerHistoryEntry>(), false);
         try
         {
             await using var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false);
@@ -85,16 +93,20 @@ internal sealed class InternalDataHistoryService : IInternalDataHistoryService, 
             if (kind is { } selected) query = query.Where(x => x.Kind == selected);
             if (fromUtc is { } from) query = query.Where(x => x.ChangedAt >= from);
             if (untilUtc is { } until) query = query.Where(x => x.ChangedAt < until);
-            return await query.OrderByDescending(x => x.ChangedAt).ThenByDescending(x => x.Id)
-                .Take(Math.Clamp(limit, 1, 1000))
+            var take = Math.Clamp(limit, 1, 1000);
+            var rows = await query.OrderByDescending(x => x.ChangedAt).ThenByDescending(x => x.Id)
+                .Take(take + 1)
                 .Select(x => new PlayerHistoryEntry(x.Id, x.ContentId, x.Kind,
                     x.ChangedAt, x.OldValue, x.NewValue, x.IsRead))
                 .ToListAsync(ct).ConfigureAwait(false);
+            var hasMore = rows.Count > take;
+            if (hasMore) rows.RemoveAt(rows.Count - 1);
+            return new PlayerHistoryPage(rows, hasMore);
         }
         catch (Exception ex)
         {
             mLog.LogWarning(ex, "Filtered history read failed for {ContentId}", contentId);
-            return Array.Empty<PlayerHistoryEntry>();
+            return new PlayerHistoryPage(Array.Empty<PlayerHistoryEntry>(), false);
         }
     }
 

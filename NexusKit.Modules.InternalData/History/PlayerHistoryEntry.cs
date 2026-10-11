@@ -24,3 +24,7 @@ public sealed record PlayerHistoryEntry(
     string? OldValue,
     string? NewValue,
     bool IsRead);
+
+public sealed record PlayerHistoryPage(
+    IReadOnlyList<PlayerHistoryEntry> Entries,
+    bool HasMore);
