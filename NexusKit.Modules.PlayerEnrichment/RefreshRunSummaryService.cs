@@ -31,7 +31,9 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     public void Record(RefreshOutcome outcome)
     {
         mMetrics.Record(outcome);
-        mBuilder?.Add(outcome);
+        // Background refreshes must still be diagnosable when no UI button
+        // explicitly started a run; the next explicit Complete closes it.
+        (mBuilder ??= new RefreshRunSummaryBuilder()).Add(outcome);
     }
 
     public RefreshRunSummary Complete()
