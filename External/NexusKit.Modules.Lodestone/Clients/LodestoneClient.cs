@@ -18,6 +18,7 @@ internal sealed class LodestoneClient : ILodestoneClient
 {
     private readonly ISettingsStore mSettingsStore;
     private readonly INexusDbContextFactory mDbFactory;
+    private readonly IPluginLifetime mLifetime;
     private readonly LocalizationManager? mLocalization;
     private readonly ILogger<LodestoneClient> mLog;
 
@@ -29,11 +30,13 @@ internal sealed class LodestoneClient : ILodestoneClient
         ISettingsStore settingsStore,
         INexusDbContextFactory dbFactory,
         ILogger<LodestoneClient> log,
+        IPluginLifetime lifetime,
         LocalizationManager? localization = null)
     {
         mSettingsStore = settingsStore;
         mDbFactory = dbFactory;
         mLog = log;
+        mLifetime = lifetime;
         mLocalization = localization;
         // One-shot session-startup cleanup of expired rows. Read-side
         // TryReadCacheAsync already skips expired entries, but never deletes
@@ -879,12 +882,20 @@ internal sealed class LodestoneClient : ILodestoneClient
 
     private async Task<NetStone.LodestoneClient?> GetNetClientAsync(CancellationToken ct)
     {
+        // NetStone is loaded from Dalamud's plugin AssemblyLoadContext. Once
+        // shutdown starts that context may disappear while this client is
+        // still reachable, so never create or hand out a client afterwards.
+        ct.ThrowIfCancellationRequested();
+        if (mLifetime.IsStopping) return null;
+
         var wantedBase = LodestoneBaseAddress;
         if (mNetClient is not null && mNetClientBaseAddress == wantedBase) return mNetClient;
 
         await mNetClientLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            ct.ThrowIfCancellationRequested();
+            if (mLifetime.IsStopping) return null;
             if (mNetClient is not null && mNetClientBaseAddress == wantedBase) return mNetClient;
             mNetClient = await NetStone.LodestoneClient.GetClientAsync(lodestoneBaseAddress: wantedBase).ConfigureAwait(false);
             mNetClientBaseAddress = wantedBase;

@@ -588,6 +588,10 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
 
     private async Task ProcessOneAsync(InternalRefreshQueueEntity row, CancellationToken ct)
     {
+        // Do not begin another DB/network operation once the host has started
+        // unloading. In particular this keeps queued Lodestone work from
+        // touching NetStone after Dalamud begins tearing down its load context.
+        ct.ThrowIfCancellationRequested();
         // Stamp the attempt up front so a process crash doesn't loop forever.
         await using (var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false))
         {
