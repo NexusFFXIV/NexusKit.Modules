@@ -604,14 +604,12 @@ internal sealed class ExternalDataPlayerService : IExternalDataPlayerService
         }
 
         // Emit change notifications BEFORE mutating the row so subscribers see
-        // the pre-change state via the entity if they peek. The recorder is
-        // fire-and-forget (returns Task but we don't await) — its own dedup
-        // suppresses duplicates against history rows the live-watcher path
-        // already wrote.
+        // the pre-change state via the entity if they peek. Await the recorder
+        // so it cannot outlive the refresh operation during plugin shutdown.
         if (mChangeRecorder is not null)
         {
             if (!string.Equals(existing.Name, p.Name, StringComparison.Ordinal))
-                _ = mChangeRecorder.RecordPlayerChangeAsync(
+                await mChangeRecorder.RecordPlayerChangeAsync(
                     p.LodestoneId, PlayerChangeKind.Name, existing.Name, p.Name, now, ct);
 
             if (existing.HomeWorldId != p.HomeWorldId)
@@ -622,7 +620,7 @@ internal sealed class ExternalDataPlayerService : IExternalDataPlayerService
                               ?? existing.HomeWorldId.ToString();
                 var newName = mGameDataLookups?.GetWorldName(p.HomeWorldId)
                               ?? p.HomeWorldId.ToString();
-                _ = mChangeRecorder.RecordPlayerChangeAsync(
+                await mChangeRecorder.RecordPlayerChangeAsync(
                     p.LodestoneId, PlayerChangeKind.HomeWorld, oldName, newName, now, ct);
             }
         }
@@ -656,7 +654,7 @@ internal sealed class ExternalDataPlayerService : IExternalDataPlayerService
                         "FC pre-warm fetch failed for {Id} during initial profile insert for {Lid}",
                         nextFc, lodestoneId);
                 }
-                _ = mChangeRecorder.RecordPlayerChangeAsync(
+                await mChangeRecorder.RecordPlayerChangeAsync(
                     lodestoneId, PlayerChangeKind.FreeCompany, null, nextFc, now, ct);
             }
 
@@ -698,7 +696,7 @@ internal sealed class ExternalDataPlayerService : IExternalDataPlayerService
                         }
                     }
 
-                    _ = mChangeRecorder.RecordPlayerChangeAsync(
+                    await mChangeRecorder.RecordPlayerChangeAsync(
                         lodestoneId, PlayerChangeKind.FreeCompany, prevFc, nextFc, now, ct);
                 }
             }
