@@ -7,12 +7,12 @@ using NexusKit.Persistence;
 
 namespace NexusKit.Modules.InternalData.History;
 
-/// <summary>Keeps the two most recent normalized observation snapshots per
-/// character for an in-session "since last scan" view. Raw IDs are stored for
-/// localized fields so changing the game language cannot create a false diff.</summary>
+/// <summary>Persists normalized observation snapshots. Recent rows are kept
+/// intact; the database maintenance contributor compacts older rows to one
+/// representative per month.</summary>
 public sealed class PlayerSnapshotStore : IDisposable
 {
-    private const int MaxSnapshotsPerPlayer = 20;
+    private const int MaxSnapshotsPerPlayer = 2000;
     private readonly IInternalDataPlayerWatcher mWatcher;
     private readonly INexusDbContextFactory mDb;
     private readonly ILogger<PlayerSnapshotStore> mLog;
@@ -31,8 +31,8 @@ public sealed class PlayerSnapshotStore : IDisposable
     }
 
     /// <summary>Returns the newest normalized snapshots for a character. The
-    /// bounded result is enough for the comparison UI and keeps old snapshot
-    /// data from becoming an unbounded second history log.</summary>
+    /// bounded result protects the UI from pathological data sets; maintenance
+    /// compacts older rows so normal history remains available.</summary>
     public async Task<IReadOnlyList<PlayerSnapshotRecord>> GetSnapshotsAsync(
         ulong contentId, int limit = MaxSnapshotsPerPlayer, CancellationToken ct = default)
     {
@@ -124,15 +124,6 @@ public sealed class PlayerSnapshotStore : IDisposable
                 });
                 await ctx.SaveChangesAsync(mDb.LifetimeToken).ConfigureAwait(false);
 
-                var oldRows = await ctx.Set<InternalPlayerSnapshotEntity>()
-                    .Where(x => x.ContentId == current.ContentId)
-                    .OrderByDescending(x => x.CapturedAt)
-                    .ThenByDescending(x => x.Id)
-                    .Skip(MaxSnapshotsPerPlayer)
-                    .ToListAsync(mDb.LifetimeToken).ConfigureAwait(false);
-                if (oldRows.Count == 0) return;
-                ctx.RemoveRange(oldRows);
-                await ctx.SaveChangesAsync(mDb.LifetimeToken).ConfigureAwait(false);
             }
             finally { mPersistGate.Release(); }
         }
