@@ -41,7 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageVersion Include="HtmlAgilityPack" Version="1.13.0" />
+    <!-- NetStone 1.4.1 was compiled against the 1.11 API. Keep this
+         compatible version until NetStone publishes a 1.13-compatible build. -->
+    <PackageVersion Include="HtmlAgilityPack" Version="1.11.46" />
     <PackageVersion Include="NetStone" Version="1.4.1" />
     <PackageVersion Include="MinVer" Version="6.0.0" />
   </ItemGroup>
