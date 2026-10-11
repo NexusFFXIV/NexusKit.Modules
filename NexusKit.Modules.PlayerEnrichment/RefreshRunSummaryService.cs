@@ -130,6 +130,10 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
             .Skip(keep)
             .ToListAsync(ct).ConfigureAwait(false);
         if (old.Count == 0) return 0;
+        var ids = old.Select(x => x.Id).ToArray();
+        await ctx.Set<InternalRefreshRunItemEntity>()
+            .Where(x => ids.Contains(x.RunId))
+            .ExecuteDeleteAsync(ct).ConfigureAwait(false);
         ctx.Set<InternalRefreshRunEntity>().RemoveRange(old);
         return await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
     }

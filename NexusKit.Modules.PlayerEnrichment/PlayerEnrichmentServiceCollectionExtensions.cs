@@ -71,6 +71,7 @@ public static class PlayerEnrichmentServiceCollectionExtensions
         // out of PickNextAsync; this contributor keeps the table bounded
         // when the user toggles a category off and never turns it back on.
         services.AddMaintenanceContributor<RefreshQueueDisabledCategoryPruneContributor>();
+        services.AddMaintenanceContributor<RefreshRunMaintenanceContributor>();
 
         // Read-only stats service for the queue diagnostics UI. Knows the
         // worker's WorkerGap / MaxAttempts so it can compute a realistic
