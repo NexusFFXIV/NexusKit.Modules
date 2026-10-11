@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NexusKit.Core;
 using NexusKit.Core.Cache;
 using NexusKit.GameData;
 using NexusKit.Modules.ExternalData.Models;
@@ -22,6 +23,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
     private readonly ILogger<PlayerRefreshQueueService> mLog;
     private readonly IRefreshTtlProvider mTtl;
     private readonly IRefreshCategoryPolicy mPolicy;
+    private readonly IPluginLifetime mLifetime;
     private readonly CancellationTokenSource mStopCts = new();
     private readonly CancellationTokenSource mWorkerCts;
     private readonly SemaphoreSlim mWakeup = new(initialCount: 0, maxCount: 1);
@@ -109,6 +111,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         IEnumerable<IExternalDataCacheResetter> resetters,
         IRefreshTtlProvider ttl,
         IRefreshCategoryPolicy policy,
+        IPluginLifetime lifetime,
         ILogger<PlayerRefreshQueueService> log)
     {
         mDb = db;
@@ -120,23 +123,36 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         mResetters = resetters.ToList();
         mTtl = ttl;
         mPolicy = policy;
+        mLifetime = lifetime;
         mLog = log;
         mWorkerCts = CancellationTokenSource.CreateLinkedTokenSource(mDb.LifetimeToken, mStopCts.Token);
         mWatcher.Observed += OnObserved;
+        mLifetime.StateChanged += OnLifecycleChanged;
         mWorker = Task.Run(WorkerLoopAsync);
+    }
+
+    private void OnLifecycleChanged(PluginLifecycleState state)
+    {
+        if (state == PluginLifecycleState.Stopping)
+            StopWorker();
+    }
+
+    private void StopWorker()
+    {
+        try { mStopCts.Cancel(); } catch (ObjectDisposedException) { }
+        try { mWorker.GetAwaiter().GetResult(); }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { mLog.LogWarning(ex, "Refresh worker shutdown failed"); }
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref mDisposed, 1) != 0) return;
         mWatcher.Observed -= OnObserved;
-        try { mStopCts.Cancel(); } catch (ObjectDisposedException) { }
-        // Do not dispose synchronization primitives while the worker can
-        // still touch them. The private stop token makes the wait bounded by
-        // the currently running database/network operation.
-        try { mWorker.GetAwaiter().GetResult(); }
-        catch (OperationCanceledException) { }
-        catch (Exception ex) { mLog.LogWarning(ex, "Refresh worker shutdown failed"); }
+        mLifetime.StateChanged -= OnLifecycleChanged;
+        // Normally OnLifecycleChanged already stopped and joined the worker
+        // while DI was still alive. Keep this fallback for non-host disposal.
+        StopWorker();
         mWorkerCts.Dispose();
         mStopCts.Dispose();
         try { mWakeup.Release(); } catch { }
