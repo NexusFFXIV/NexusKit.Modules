@@ -78,14 +78,14 @@ table-size hygiene measure.
 |---:|---|---|
 | 0 | `Immediate` | User click: `MainWindowState.Select` (only stale categories) or `Refresh` button (all categories, bypasses freshness). |
 | 1 | `High` | A visible-in-range sighting via `Watcher.Observed`. |
-| 2 | `Low` | Reserved for the future background sweep (not currently wired). |
+| 2 | `Low` | Background sweep and low-priority stale work. |
 
 ## Worker order
 
 ```sql
 SELECT *
 FROM nexus_internal_refresh_queue
-WHERE attempt_count < 5
+WHERE attempt_count < 10
   AND (last_failed_at IS NULL OR last_failed_at < @cutoff)
 ORDER BY priority ASC, category ASC, enqueued_at ASC
 LIMIT 1
@@ -122,7 +122,7 @@ When `RefreshCategory.LodestoneId` lands at the head of the queue:
 
 - **Backoff**: 60 minutes between attempts for failed rows. Tracked via
   `last_failed_at`; the worker's `WHERE` clause filters on it.
-- **Attempt cap**: 5. After the 5th failure the row stays parked (still
+- **Attempt cap**: 10. After the 10th failure the row stays parked (still
   in the table for manual inspection) and the worker's `WHERE` clause
   excludes it. `IPlayerRefreshQueueService.Exhausted(contentId, category)`
   fires once when a row reaches this state — the plugin's

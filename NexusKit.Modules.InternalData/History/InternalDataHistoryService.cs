@@ -216,7 +216,9 @@ internal sealed class InternalDataHistoryService : IInternalDataHistoryService, 
             rows.Add(Build(curr.ContentId, PlayerHistoryKind.NameChange, evt.ObservedAt,
                 prev.Name, curr.Name));
 
-        if (!string.Equals(prev.HomeWorld, curr.HomeWorld, StringComparison.Ordinal))
+        // Compare the stable Lumina id. Display names are localized and may change
+        // when the user switches language while both observations remain identical.
+        if (prev.HomeWorldId != curr.HomeWorldId)
             rows.Add(Build(curr.ContentId, PlayerHistoryKind.HomeWorldChange, evt.ObservedAt,
                 prev.HomeWorld, curr.HomeWorld));
 
