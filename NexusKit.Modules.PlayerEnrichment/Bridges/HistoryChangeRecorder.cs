@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NexusKit.Core;
 using NexusKit.Modules.ExternalData.Players;
 using NexusKit.Modules.InternalData.History;
 using NexusKit.Modules.InternalData.Persistence;
@@ -23,15 +24,18 @@ internal sealed class HistoryChangeRecorder : IPlayerChangeRecorder
 {
     private readonly INexusDbContextFactory mDb;
     private readonly IInternalDataHistoryService mHistory;
+    private readonly IPluginLifetime mLifetime;
     private readonly ILogger<HistoryChangeRecorder> mLog;
 
     public HistoryChangeRecorder(
         INexusDbContextFactory db,
         IInternalDataHistoryService history,
+        IPluginLifetime lifetime,
         ILogger<HistoryChangeRecorder> log)
     {
         mDb = db;
         mHistory = history;
+        mLifetime = lifetime;
         mLog = log;
     }
 
@@ -51,6 +55,7 @@ internal sealed class HistoryChangeRecorder : IPlayerChangeRecorder
             _ => (PlayerHistoryKind?)null,
         };
         if (historyKind is null) return;
+        if (mLifetime.IsStopping || ct.IsCancellationRequested) return;
 
         try
         {
