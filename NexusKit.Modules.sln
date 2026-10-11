@@ -19,6 +19,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NexusKit.Modules.PluginBrid
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusKit.Modules.Sync", "External\NexusKit.Modules.Sync\NexusKit.Modules.Sync.csproj", "{05FB52A9-4B24-43CF-AD44-D6194AF60D8A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusKit.Modules.Domain.Tests", "tests\NexusKit.Modules.Domain.Tests\NexusKit.Modules.Domain.Tests.csproj", "{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -113,6 +117,18 @@ Global
 		{05FB52A9-4B24-43CF-AD44-D6194AF60D8A}.Release|Any CPU.Build.0 = Release|x64
 		{05FB52A9-4B24-43CF-AD44-D6194AF60D8A}.Release|x86.ActiveCfg = Release|x64
 		{05FB52A9-4B24-43CF-AD44-D6194AF60D8A}.Release|x86.Build.0 = Release|x64
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|x64.Build.0 = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Debug|x86.Build.0 = Debug|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|x64.ActiveCfg = Release|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|x64.Build.0 = Release|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|x86.ActiveCfg = Release|Any CPU
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -122,5 +138,6 @@ Global
 		{2A100000-0000-0000-0000-000000000005} = {2A100000-EE00-0000-0000-000000000000}
 		{2A100000-0000-0000-0000-000000000006} = {2A100000-EE00-0000-0000-000000000000}
 		{05FB52A9-4B24-43CF-AD44-D6194AF60D8A} = {2A100000-EE00-0000-0000-000000000000}
+		{4EB60926-6559-44A7-952B-AB5F9D3DFFFE} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
