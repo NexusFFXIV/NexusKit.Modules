@@ -7,6 +7,7 @@ using NexusKit.Modules.InternalData;
 using NexusKit.Modules.PlayerEnrichment.Bridges;
 using NexusKit.Modules.PlayerEnrichment.Maintenance;
 using NexusKit.Persistence;
+using NexusKit.Persistence.Maintenance;
 using NexusKit.Ui.AutoSettings;
 
 namespace NexusKit.Modules.PlayerEnrichment;
@@ -23,8 +24,11 @@ public static class PlayerEnrichmentServiceCollectionExtensions
     /// background work in their constructors; the plugin is expected to eagerly
     /// resolve them at startup so the threads start running on plugin load
     /// rather than first UI access.</para>
+    /// <param name="refreshQueueOrder">Settings navigation order for the
+    /// queue status section. Defaults to the module's low-priority position.</param>
     /// </summary>
-    public static IServiceCollection AddNexusKitPlayerEnrichment(this IServiceCollection services)
+    public static IServiceCollection AddNexusKitPlayerEnrichment(
+        this IServiceCollection services, int refreshQueueOrder = 210)
     {
         services.AddNexusKitInternalData();
         services.AddNexusKitExternalData();
@@ -84,7 +88,13 @@ public static class PlayerEnrichmentServiceCollectionExtensions
         // alongside so the section's keys resolve without the plugin having
         // to know about this module's resources.
         services.AddResourceLocalizer<NexusKit.Modules.PlayerEnrichment.Resources.Strings>();
-        services.AddSingleton<IAutoSettingsSection, RefreshQueueSettingsSection>();
+        services.AddSingleton<IAutoSettingsSection>(sp =>
+            new RefreshQueueSettingsSection(
+                sp.GetRequiredService<IRefreshQueueStatsService>(),
+                sp.GetRequiredService<IDbStatsService>(),
+                sp.GetRequiredService<RefreshCategoryPolicy>(),
+                sp.GetRequiredService<ILocalizer>(),
+                refreshQueueOrder));
 
         return services;
     }
