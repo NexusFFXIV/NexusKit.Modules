@@ -35,7 +35,7 @@ public sealed class PlayerSnapshotStore : IDisposable
     private void OnObservationProcessed(PlayerObservationEvent evt)
     {
         if (evt.Previous is null) return;
-        var previous = ToSnapshot(evt.Previous, evt.ObservedAt);
+        var previous = ToSnapshot(evt.Previous, evt.Previous.LastSeen);
         var current = ToSnapshot(evt.Current, evt.ObservedAt);
         lock (mGate) mLatest[evt.Current.ContentId] = (previous, current);
     }
