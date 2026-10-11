@@ -8,6 +8,9 @@ public sealed record PlayerSnapshot(
     DateTime CapturedAt,
     IReadOnlyDictionary<string, string?> Values);
 
+/// <summary>Persisted snapshot identity used by the historical comparison UI.</summary>
+public sealed record PlayerSnapshotRecord(long Id, PlayerSnapshot Snapshot);
+
 public enum SnapshotChangeKind : byte
 {
     Added = 0,
