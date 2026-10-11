@@ -32,6 +32,7 @@ public static class InternalDataServiceCollectionExtensions
 
         services.AddSingleton<InternalDataHistoryService>();
         services.AddSingleton<IInternalDataHistoryService>(sp => sp.GetRequiredService<InternalDataHistoryService>());
+        services.AddSingleton<PlayerSnapshotDiffService>();
 
         services.AddSingleton<InternalDataEncounterTracker>();
         services.AddSingleton<IInternalDataEncounterTracker>(sp => sp.GetRequiredService<InternalDataEncounterTracker>());
