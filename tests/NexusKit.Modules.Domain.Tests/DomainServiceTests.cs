@@ -54,4 +54,20 @@ public sealed class DomainServiceTests
         Assert.DoesNotContain("123", summary.Items[0].ContentKey);
         Assert.Equal("timeout", summary.Items[1].ErrorCode);
     }
+
+    [Fact]
+    public void RunSummary_CountsAllOutcomesWhenDiagnosticItemsAreCapped()
+    {
+        var builder = new RefreshRunSummaryBuilder();
+        for (var i = 0; i < 501; i++)
+            builder.Add(new RefreshOutcome((ulong)i, RefreshCategory.Profile,
+                RefreshOutcomeStatus.Succeeded, 1, DateTime.UtcNow, DateTime.UtcNow,
+                Array.Empty<RefreshSourceStatus>()));
+
+        var summary = builder.Complete();
+
+        Assert.Equal(501, summary.Total);
+        Assert.Equal(501, summary.Succeeded);
+        Assert.Equal(500, summary.Items.Count);
+    }
 }
