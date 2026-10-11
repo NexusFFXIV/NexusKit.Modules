@@ -34,9 +34,19 @@ public sealed class RefreshRunSummaryBuilder
     private readonly Guid mRunId = Guid.NewGuid();
     private readonly DateTime mStartedAtUtc = DateTime.UtcNow;
     private readonly List<RefreshRunItem> mItems = new();
+    private int mTotal;
+    private int mSucceeded;
+    private int mFailed;
+    private int mSkipped;
+    private int mExhausted;
 
     public void Add(RefreshOutcome outcome)
     {
+        mTotal++;
+        if (outcome.Status == RefreshOutcomeStatus.Succeeded) mSucceeded++;
+        if (outcome.Status == RefreshOutcomeStatus.Failed) mFailed++;
+        if (outcome.Status == RefreshOutcomeStatus.Skipped) mSkipped++;
+        if (outcome.IsExhausted) mExhausted++;
         if (mItems.Count >= MaxItems) return;
 
         mItems.Add(new RefreshRunItem(
@@ -57,11 +67,11 @@ public sealed class RefreshRunSummaryBuilder
             mRunId,
             mStartedAtUtc,
             completed,
-            mItems.Count,
-            mItems.Count(static x => x.Status == RefreshOutcomeStatus.Succeeded),
-            mItems.Count(static x => x.Status == RefreshOutcomeStatus.Failed),
-            mItems.Count(static x => x.Status == RefreshOutcomeStatus.Skipped),
-            mItems.Count(static x => x.IsExhausted),
+            mTotal,
+            mSucceeded,
+            mFailed,
+            mSkipped,
+            mExhausted,
             mItems.ToArray());
     }
 

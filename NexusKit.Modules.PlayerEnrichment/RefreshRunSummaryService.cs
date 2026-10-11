@@ -15,6 +15,8 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     private readonly object mGate = new();
     private readonly HashSet<(ulong ContentId, RefreshCategory Category)> mPending = new();
     private RefreshRunSummaryBuilder? mBuilder;
+    private long mRunVersion;
+    private bool mDisposed;
 
     public RefreshRunSummaryService(IPlayerRefreshQueueService queue,
         RefreshMetricsCollector metrics, INexusDbContextFactory db,
@@ -36,6 +38,7 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         {
             mBuilder = new RefreshRunSummaryBuilder();
             mPending.Clear();
+            mRunVersion++;
             return mBuilder.Complete();
         }
     }
@@ -49,11 +52,18 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         lock (mGate)
         {
             (mBuilder ??= new RefreshRunSummaryBuilder()).Add(outcome);
-            mPending.Remove((outcome.ContentId, outcome.Category));
+            // A failed attempt can be retried without another Enqueued event;
+            // keep the batch open until the terminal/exhausted outcome arrives.
+            if (outcome.Status != RefreshOutcomeStatus.Failed || outcome.IsExhausted)
+                mPending.Remove((outcome.ContentId, outcome.Category));
             drained = mPending.Count == 0;
         }
         if (drained)
-            _ = CompleteAndPersistSafelyAsync();
+        {
+            long version;
+            lock (mGate) version = mRunVersion;
+            _ = CompleteWhenQueueSettlesAsync(version);
+        }
     }
 
     private void OnEnqueued(ulong contentId, RefreshCategory category)
@@ -62,7 +72,20 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         {
             mBuilder ??= new RefreshRunSummaryBuilder();
             mPending.Add((contentId, category));
+            mRunVersion++;
         }
+    }
+
+    private async Task CompleteWhenQueueSettlesAsync(long version)
+    {
+        // Enqueue batches are commonly published back-to-back. A short grace
+        // period avoids persisting a partial run between two queue events.
+        await Task.Delay(100).ConfigureAwait(false);
+        lock (mGate)
+        {
+            if (mDisposed || version != mRunVersion || mPending.Count != 0 || mBuilder is null) return;
+        }
+        await CompleteAndPersistSafelyAsync().ConfigureAwait(false);
     }
 
     private async Task CompleteAndPersistSafelyAsync()
@@ -79,6 +102,7 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
             Latest = builder.Complete();
             mBuilder = null;
             mPending.Clear();
+            mRunVersion++;
             return Latest;
         }
     }
@@ -140,7 +164,13 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
 
     public void Dispose()
     {
+        lock (mGate) mDisposed = true;
         mQueue.Enqueued -= OnEnqueued;
         mQueue.OutcomeProduced -= Record;
+        lock (mGate)
+        {
+            if (mBuilder is null) return;
+        }
+        _ = CompleteAndPersistSafelyAsync();
     }
 }
