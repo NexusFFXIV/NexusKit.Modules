@@ -15,6 +15,7 @@ and gets both data layers transitively.
 | Type | File | Purpose |
 |---|---|---|
 | `IPlayerRefreshQueueService` | `IPlayerRefreshQueueService.cs` | Enqueue refresh work by `(ContentId, RefreshCategory)`; subscribe to `Enqueued` / `Completed` / `Exhausted` events. |
+| `RefreshOutcome` / `RefreshSourceStatus` | `RefreshOutcome.cs` | Result of each picked attempt: status, timing, attempt number, error code, exhaustion and consulted source state. |
 | `IRefreshTtlProvider` | `IRefreshTtlProvider.cs` | Plugin-injectable freshness TTL — service consults it on every stale check. |
 | `DefaultRefreshTtlProvider` | `IRefreshTtlProvider.cs` | Fallback 7-day TTL used when the host plugin doesn't register its own provider (`TryAddSingleton`-registered, so a plugin-side provider wins). |
 | `IRefreshCategoryPolicy` | `IRefreshCategoryPolicy.cs` | Per-category on/off gate consulted at every enqueue and worker-pick boundary. Mandatory categories always report enabled; the toggleable subset is user-controlled via the refresh-queue settings section. |

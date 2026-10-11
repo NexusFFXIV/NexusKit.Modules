@@ -58,6 +58,9 @@ public interface IPlayerRefreshQueueService
     /// the user know a fetch quietly gave up.</summary>
     event Action<ulong, RefreshCategory>? ExhaustedAttempts;
 
+    /// <summary>Fires after every picked row reaches a terminal outcome.</summary>
+    event Action<RefreshOutcome>? OutcomeProduced;
+
     /// <summary>Snapshot of where a character sits in the worker's pick order:
     /// how many of its own rows are pending, and how many other rows are picked
     /// before its earliest one. Drives the "queued behind N items" UI badge.
