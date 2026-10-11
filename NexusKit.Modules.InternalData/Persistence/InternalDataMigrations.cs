@@ -31,7 +31,36 @@ internal sealed class InternalDataMigrations : IMigrationModule
         new AddObservedPlayerNotesColumn(),
         new AddEncounterWorldIdColumn(),
         new AddObservedPlayerSearchCommentColumn(),
+        new AddRefreshRunTables(),
     };
+}
+
+internal sealed class AddRefreshRunTables : IMigration
+{
+    public string Id => "20261011_refresh_run_tables";
+
+    public async Task UpAsync(DbContext ctx, CancellationToken ct)
+    {
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE TABLE IF NOT EXISTS nexus_internal_refresh_run (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL, " +
+            "completed_at TEXT NULL, total INTEGER NOT NULL DEFAULT 0, " +
+            "succeeded INTEGER NOT NULL DEFAULT 0, failed INTEGER NOT NULL DEFAULT 0, " +
+            "skipped INTEGER NOT NULL DEFAULT 0, exhausted INTEGER NOT NULL DEFAULT 0);", ct);
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE TABLE IF NOT EXISTS nexus_internal_refresh_run_item (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, " +
+            "content_key TEXT NOT NULL, category TEXT NOT NULL, status INTEGER NOT NULL, " +
+            "attempt INTEGER NOT NULL, error_code TEXT NULL, duration_ms INTEGER NOT NULL, " +
+            "is_exhausted INTEGER NOT NULL DEFAULT 0, " +
+            "FOREIGN KEY(run_id) REFERENCES nexus_internal_refresh_run(id) ON DELETE CASCADE);", ct);
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS ix_nexus_internal_refresh_run_started_at " +
+            "ON nexus_internal_refresh_run(started_at DESC);", ct);
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS ix_nexus_internal_refresh_run_item_run_id " +
+            "ON nexus_internal_refresh_run_item(run_id);", ct);
+    }
 }
 
 internal sealed class AddEncounterWorldIdColumn : IMigration
