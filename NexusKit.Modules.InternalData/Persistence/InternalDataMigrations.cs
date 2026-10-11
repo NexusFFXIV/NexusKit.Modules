@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using NexusKit.Persistence.Migrations;
@@ -33,7 +34,67 @@ internal sealed class InternalDataMigrations : IMigrationModule
         new AddObservedPlayerSearchCommentColumn(),
         new AddRefreshRunTables(),
         new AddPlayerSnapshotTable(),
+        new NormalizePlayerSnapshots(),
     };
+}
+
+internal sealed class NormalizePlayerSnapshots : IMigration
+{
+    public string Id => "20261011_player_snapshot_legacy_cleanup";
+
+    public async Task UpAsync(DbContext ctx, CancellationToken ct)
+    {
+        var rows = await ctx.Set<InternalPlayerSnapshotEntity>()
+            .OrderBy(x => x.ContentId)
+            .ThenBy(x => x.CapturedAt)
+            .ThenBy(x => x.Id)
+            .ToListAsync(ct).ConfigureAwait(false);
+        var previousByContent = new Dictionary<ulong, string>();
+
+        foreach (var row in rows)
+        {
+            Dictionary<string, string?> values;
+            try
+            {
+                values = Normalize(JsonSerializer.Deserialize<Dictionary<string, string?>>(row.ValuesJson));
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            var canonical = JsonSerializer.Serialize(values.OrderBy(x => x.Key, StringComparer.Ordinal)
+                .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal));
+            if (previousByContent.TryGetValue(row.ContentId, out var previous)
+                && string.Equals(previous, canonical, StringComparison.Ordinal))
+            {
+                ctx.Set<InternalPlayerSnapshotEntity>().Remove(row);
+                continue;
+            }
+
+            previousByContent[row.ContentId] = canonical;
+            if (!string.Equals(row.ValuesJson, canonical, StringComparison.Ordinal))
+                row.ValuesJson = canonical;
+        }
+
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private static Dictionary<string, string?> Normalize(IReadOnlyDictionary<string, string?>? values)
+    {
+        var normalized = values is null
+            ? new Dictionary<string, string?>(StringComparer.Ordinal)
+            : new Dictionary<string, string?>(values, StringComparer.Ordinal);
+        if (!normalized.ContainsKey("active_class_job")
+            && normalized.TryGetValue("class_job_id", out var job)
+            && normalized.TryGetValue("level", out var level))
+        {
+            normalized["active_class_job"] = $"{job}:{level}";
+            normalized.Remove("class_job_id");
+            normalized.Remove("level");
+        }
+        return normalized;
+    }
 }
 
 internal sealed class AddPlayerSnapshotTable : IMigration
