@@ -24,6 +24,7 @@ public static class PlayerEnrichmentServiceCollectionExtensions
     /// background work in their constructors; the plugin is expected to eagerly
     /// resolve them at startup so the threads start running on plugin load
     /// rather than first UI access.</para>
+    /// <param name="services">The service collection to extend.</param>
     /// <param name="refreshQueueOrder">Settings navigation order for the
     /// queue status section. Defaults to the module's low-priority position.</param>
     /// </summary>
