@@ -29,6 +29,37 @@
         "resolved": "6.0.0",
         "contentHash": "+/SsmiySsXJlvQLCGBqaZKNVt3s/Y/HbAdwtop7Km2CnuZbaScoqkWJEBQ5Cy9ebkn6kCYKrHsXgwrFdTgcb3g=="
       },
+      "NexusKit.Core": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "6jixsLiLTVUXaCeqQzZKwaGC3usMDBkBvGXvcG2Q67u31CrrfYmirqsw1EtNvhCRyMq2vAYbwN3mMh/ZUwP+HQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
+        }
+      },
+      "NexusKit.Persistence": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "5dZJZgg2kVHd9i7tYl6ufgMrm7PHHkOjRn/Zz2itxashj0zu4ennK383qh5DMgkaBoDLl4xBzgsSMXlax6JOww==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.12",
+          "Microsoft.EntityFrameworkCore.Sqlite": "10.0.12",
+          "NexusKit.Core": "0.7.0",
+          "SQLitePCLRaw.lib.e_sqlite3": "3.53.3"
+        }
+      },
+      "NexusKit.Ui": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "UFFyooxG73ka+eugQGSmJ0pvA73eJ9XVaHw6dFWeexF32e8HTqrIBCmmCsBrx74UhYkT48gnitWa2w+2bo486A==",
+        "dependencies": {
+          "NexusKit.Core": "0.7.0",
+          "NexusKit.Persistence": "0.7.0"
+        }
+      },
       "Karashiiro.HtmlAgilityPack.CssSelectors.NetCoreFork": {
         "type": "Transitive",
         "resolved": "0.0.2",
@@ -251,29 +282,16 @@
           "SQLitePCLRaw.core": "2.1.12"
         }
       },
-      "nexuskit.core": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )"
-        }
-      },
-      "nexuskit.gamedata": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )"
-        }
-      },
       "nexuskit.modules.externaldata": {
         "type": "Project",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "NexusKit.GameData": "[1.0.0, )",
+          "NexusKit.Core": "[0.7.0, )",
+          "NexusKit.GameData": "[0.7.0, )",
           "NexusKit.Modules.FfxivCollect": "[1.0.0, )",
           "NexusKit.Modules.Lodestone": "[1.0.0, )",
-          "NexusKit.Persistence": "[1.0.0, )"
+          "NexusKit.Persistence": "[0.7.0, )"
         }
       },
       "nexuskit.modules.ffxivcollect": {
@@ -282,8 +300,8 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Http": "[10.0.12, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "NexusKit.Persistence": "[1.0.0, )"
+          "NexusKit.Core": "[0.7.0, )",
+          "NexusKit.Persistence": "[0.7.0, )"
         }
       },
       "nexuskit.modules.internaldata": {
@@ -291,9 +309,9 @@
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "NexusKit.GameData": "[1.0.0, )",
-          "NexusKit.Persistence": "[1.0.0, )"
+          "NexusKit.Core": "[0.7.0, )",
+          "NexusKit.GameData": "[0.7.0, )",
+          "NexusKit.Persistence": "[0.7.0, )"
         }
       },
       "nexuskit.modules.lodestone": {
@@ -303,24 +321,8 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
           "NetStone": "[1.4.1, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "NexusKit.Persistence": "[1.0.0, )"
-        }
-      },
-      "nexuskit.persistence": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.EntityFrameworkCore": "[10.0.12, )",
-          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "SQLitePCLRaw.lib.e_sqlite3": "[3.53.3, )"
-        }
-      },
-      "nexuskit.ui": {
-        "type": "Project",
-        "dependencies": {
-          "NexusKit.Core": "[1.0.0, )",
-          "NexusKit.Persistence": "[1.0.0, )"
+          "NexusKit.Core": "[0.7.0, )",
+          "NexusKit.Persistence": "[0.7.0, )"
         }
       },
       "HtmlAgilityPack": {
@@ -352,6 +354,16 @@
           "HtmlAgilityPack": "1.11.46",
           "Karashiiro.HtmlAgilityPack.CssSelectors.NetCoreFork": "0.0.2",
           "Newtonsoft.Json": "13.0.3"
+        }
+      },
+      "NexusKit.GameData": {
+        "type": "CentralTransitive",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "Ok5BURmJxhVRjGfoHryEJ/ievwt2O+R1oDZH37hokBGp9t4Xr+MryVIeuaXz/e++Z+usy6h4U2AgkP5e9ugRpA==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
+          "NexusKit.Core": "0.7.0"
         }
       }
     }

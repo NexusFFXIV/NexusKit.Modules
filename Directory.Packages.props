@@ -39,11 +39,11 @@
          the newest published package; an exact pin would stop a consumer picking up a patch.
          For NexusKit.Sync it would be worse than inconvenient: pinning the protocol is how a
          client ends up unable to follow a server that has moved on. -->
-    <PackageVersion Include="NexusKit.Core" Version="0.6.0" />
-    <PackageVersion Include="NexusKit.GameData" Version="0.6.0" />
-    <PackageVersion Include="NexusKit.Persistence" Version="0.6.0" />
-    <PackageVersion Include="NexusKit.Sync" Version="[0.6.0,)" />
-    <PackageVersion Include="NexusKit.Ui" Version="0.6.0" />
+    <PackageVersion Include="NexusKit.Core" Version="0.7.0" />
+    <PackageVersion Include="NexusKit.GameData" Version="0.7.0" />
+    <PackageVersion Include="NexusKit.Persistence" Version="0.7.0" />
+    <PackageVersion Include="NexusKit.Sync" Version="[0.7.0,)" />
+    <PackageVersion Include="NexusKit.Ui" Version="0.7.0" />
   </ItemGroup>
 
   <ItemGroup>
