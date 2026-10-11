@@ -22,6 +22,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
     private readonly ILogger<PlayerRefreshQueueService> mLog;
     private readonly IRefreshTtlProvider mTtl;
     private readonly IRefreshCategoryPolicy mPolicy;
+    private readonly CancellationTokenSource mStopCts = new();
+    private readonly CancellationTokenSource mWorkerCts;
     private readonly SemaphoreSlim mWakeup = new(initialCount: 0, maxCount: 1);
 
     // Serializes UpsertAsync. The method does a read-then-(insert|update)
@@ -45,7 +47,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
     // re-evaluates everyone (which is what we want for the in-range cohort).
     private readonly HashSet<ulong> mObservedThisSession = new();
 
-    private bool mDisposed;
+    private int mDisposed;
 
     // 60 minutes — matches the old plugin's per-attempt cooldown so a failed
     // Lodestone fetch doesn't hammer the endpoint right away.
@@ -119,24 +121,32 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
         mTtl = ttl;
         mPolicy = policy;
         mLog = log;
+        mWorkerCts = CancellationTokenSource.CreateLinkedTokenSource(mDb.LifetimeToken, mStopCts.Token);
         mWatcher.Observed += OnObserved;
         mWorker = Task.Run(WorkerLoopAsync);
     }
 
     public void Dispose()
     {
-        if (mDisposed) return;
-        mDisposed = true;
+        if (Interlocked.Exchange(ref mDisposed, 1) != 0) return;
         mWatcher.Observed -= OnObserved;
+        try { mStopCts.Cancel(); } catch (ObjectDisposedException) { }
+        // Do not dispose synchronization primitives while the worker can
+        // still touch them. The private stop token makes the wait bounded by
+        // the currently running database/network operation.
+        try { mWorker.GetAwaiter().GetResult(); }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { mLog.LogWarning(ex, "Refresh worker shutdown failed"); }
+        mWorkerCts.Dispose();
+        mStopCts.Dispose();
         try { mWakeup.Release(); } catch { }
-        try { mWorker.Wait(TimeSpan.FromSeconds(2)); } catch { }
         mWakeup.Dispose();
         mUpsertGate.Dispose();
     }
 
     private void OnObserved(ObservedPlayer p)
     {
-        if (p.ContentId == 0) return;
+        if (p.ContentId == 0 || Volatile.Read(ref mDisposed) != 0) return;
         lock (mObservedThisSession)
         {
             if (!mObservedThisSession.Add(p.ContentId)) return;
@@ -151,7 +161,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
     public async Task EnqueueAsync(ulong contentId, RefreshCategory category,
                                    RefreshPriority priority, CancellationToken ct = default)
     {
-        if (contentId == 0) return;
+        if (contentId == 0 || Volatile.Read(ref mDisposed) != 0) return;
         // Policy gate: a disabled category is never queued, even via direct
         // EnqueueAsync from foreign code. Re-enabling later flips IsEnabled
         // and a subsequent stale-check picks up the row.
@@ -164,7 +174,8 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
     public async Task<IReadOnlyList<RefreshCategory>> EnqueueStaleAsync(
         ulong contentId, RefreshPriority priority, CancellationToken ct = default)
     {
-        if (contentId == 0) return Array.Empty<RefreshCategory>();
+        if (contentId == 0 || Volatile.Read(ref mDisposed) != 0)
+            return Array.Empty<RefreshCategory>();
 
         // Bump anything already sitting in the queue for this player up to the
         // requested priority FIRST. The staleness check below only flags
@@ -261,7 +272,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
 
     public async Task EnqueueAllAsync(ulong contentId, RefreshPriority priority, CancellationToken ct = default)
     {
-        if (contentId == 0) return;
+        if (contentId == 0 || Volatile.Read(ref mDisposed) != 0) return;
         var obs = await LookupObservationAsync(contentId, ct).ConfigureAwait(false);
         if (obs is null) return;
 
@@ -409,7 +420,7 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
 
     private async Task WorkerLoopAsync()
     {
-        var ct = mDb.LifetimeToken;
+        var ct = mWorkerCts.Token;
         while (!ct.IsCancellationRequested)
         {
             InternalRefreshQueueEntity? next;
