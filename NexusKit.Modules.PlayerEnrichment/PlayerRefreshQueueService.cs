@@ -480,7 +480,19 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
                 .OrderBy(e => e.Priority).ThenBy(e => e.Category).ThenBy(e => e.EnqueuedAt)
                 .Select(e => new { e.Priority, e.Category, e.EnqueuedAt })
                 .ToListAsync(ct).ConfigureAwait(false);
-            if (ownRows.Count == 0) return new QueueStatusForContent(0, 0, null);
+            if (ownRows.Count == 0)
+            {
+                var parked = await ctx.Set<InternalRefreshQueueEntity>()
+                    .Where(e => e.ContentId == contentId && allowed.Contains(e.Category))
+                    .OrderBy(e => e.Priority).ThenBy(e => e.Category).ThenBy(e => e.EnqueuedAt)
+                    .Select(e => new { e.Category, e.AttemptCount, e.LastAttemptedAt, e.LastFailedAt })
+                    .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                if (parked is not null && parked.AttemptCount >= MaxAttempts)
+                    return new QueueStatusForContent(0, 0, parked.Category,
+                        QueueWorkState.Exhausted, parked.AttemptCount,
+                        parked.LastAttemptedAt, parked.LastFailedAt, null);
+                return new QueueStatusForContent(0, 0, null);
+            }
 
             var head = ownRows[0];
             // "Ahead of head" means strictly higher in the same ORDER BY tuple.
@@ -496,7 +508,19 @@ internal sealed class PlayerRefreshQueueService : IPlayerRefreshQueueService, ID
                         && e.EnqueuedAt < head.EnqueuedAt))
                 .CountAsync(ct).ConfigureAwait(false);
 
-            return new QueueStatusForContent(ownRows.Count, ahead, head.Category);
+            var details = await ctx.Set<InternalRefreshQueueEntity>()
+                .Where(e => e.ContentId == contentId && e.Category == head.Category)
+                .Select(e => new { e.AttemptCount, e.LastAttemptedAt, e.LastFailedAt })
+                .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            var nextAttempt = details?.LastFailedAt is { } failed
+                ? failed + FailureBackoff
+                : (DateTime?)null;
+            var state = details?.LastFailedAt is { } && nextAttempt > DateTime.UtcNow
+                ? QueueWorkState.Waiting
+                : QueueWorkState.Queued;
+            return new QueueStatusForContent(ownRows.Count, ahead, head.Category, state,
+                details?.AttemptCount ?? 0, details?.LastAttemptedAt,
+                details?.LastFailedAt, nextAttempt);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

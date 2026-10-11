@@ -120,6 +120,11 @@ When `RefreshCategory.LodestoneId` lands at the head of the queue:
 
 ## Failure handling
 
+`GetQueueStatusForAsync` also exposes the earliest category's user-facing
+state (`Idle`, `Queued`, `Waiting` or `Exhausted`) together with attempts,
+last-attempt, last-failure and next-attempt timestamps. These are derived from
+the existing queue row, so the status extension needs no schema migration.
+
 - **Backoff**: 60 minutes between attempts for failed rows. Tracked via
   `last_failed_at`; the worker's `WHERE` clause filters on it.
 - **Attempt cap**: 10. After the 10th failure the row stays parked (still

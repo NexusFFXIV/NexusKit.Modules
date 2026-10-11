@@ -80,5 +80,25 @@ public interface IPlayerRefreshQueueService
 /// <param name="NextCategory">The category of this character's earliest
 /// eligible row — i.e. the sub-resource the worker will fetch next for this
 /// character. Null when <paramref name="PendingForContentId"/> is zero.</param>
+/// <param name="State">State of the earliest row, including cooldown and
+/// exhausted rows that are no longer eligible for immediate processing.</param>
+/// <param name="Attempts">Attempt count of the earliest row.</param>
+/// <param name="LastAttemptedAt">UTC timestamp of the latest attempt.</param>
+/// <param name="LastFailedAt">UTC timestamp of the latest failure.</param>
+/// <param name="NextAttemptAt">UTC time when a failed row becomes eligible.</param>
 public readonly record struct QueueStatusForContent(
-    int PendingForContentId, int RowsAhead, RefreshCategory? NextCategory);
+    int PendingForContentId, int RowsAhead, RefreshCategory? NextCategory,
+    QueueWorkState State = QueueWorkState.Idle,
+    int Attempts = 0,
+    DateTime? LastAttemptedAt = null,
+    DateTime? LastFailedAt = null,
+    DateTime? NextAttemptAt = null);
+
+/// <summary>Current user-facing state of the earliest queued category.</summary>
+public enum QueueWorkState : byte
+{
+    Idle = 0,
+    Queued = 1,
+    Waiting = 2,
+    Exhausted = 3,
+}
