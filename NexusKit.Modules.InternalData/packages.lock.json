@@ -29,6 +29,37 @@
         "resolved": "6.0.0",
         "contentHash": "+/SsmiySsXJlvQLCGBqaZKNVt3s/Y/HbAdwtop7Km2CnuZbaScoqkWJEBQ5Cy9ebkn6kCYKrHsXgwrFdTgcb3g=="
       },
+      "NexusKit.Core": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "6jixsLiLTVUXaCeqQzZKwaGC3usMDBkBvGXvcG2Q67u31CrrfYmirqsw1EtNvhCRyMq2vAYbwN3mMh/ZUwP+HQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
+        }
+      },
+      "NexusKit.GameData": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "Ok5BURmJxhVRjGfoHryEJ/ievwt2O+R1oDZH37hokBGp9t4Xr+MryVIeuaXz/e++Z+usy6h4U2AgkP5e9ugRpA==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.12",
+          "NexusKit.Core": "0.7.0"
+        }
+      },
+      "NexusKit.Persistence": {
+        "type": "Direct",
+        "requested": "[0.7.0, )",
+        "resolved": "0.7.0",
+        "contentHash": "5dZJZgg2kVHd9i7tYl6ufgMrm7PHHkOjRn/Zz2itxashj0zu4ennK383qh5DMgkaBoDLl4xBzgsSMXlax6JOww==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.12",
+          "Microsoft.EntityFrameworkCore.Sqlite": "10.0.12",
+          "NexusKit.Core": "0.7.0",
+          "SQLitePCLRaw.lib.e_sqlite3": "3.53.3"
+        }
+      },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -187,28 +218,6 @@
         "contentHash": "W3oH4XIfCzFrgUSDKHhN6N+dgzA5YHOR2VxX8GB6Qy7CyrJJgxPEG8NirgYWlPQC5P2jz2knSsexWu4tDUL33g==",
         "dependencies": {
           "SQLitePCLRaw.core": "2.1.12"
-        }
-      },
-      "nexuskit.core": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.12, )"
-        }
-      },
-      "nexuskit.gamedata": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )"
-        }
-      },
-      "nexuskit.persistence": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.EntityFrameworkCore": "[10.0.12, )",
-          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )",
-          "NexusKit.Core": "[1.0.0, )",
-          "SQLitePCLRaw.lib.e_sqlite3": "[3.53.3, )"
         }
       }
     }
