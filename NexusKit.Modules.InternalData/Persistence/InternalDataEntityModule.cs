@@ -89,6 +89,37 @@ internal sealed class InternalDataEntityModule : IEntityModule
             e.HasIndex(x => x.LastFailedAt);
         });
 
+        modelBuilder.Entity<InternalRefreshRunEntity>(e =>
+        {
+            e.ToTable("refresh_run");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            e.Property(x => x.StartedAt).HasColumnName("started_at");
+            e.Property(x => x.CompletedAt).HasColumnName("completed_at");
+            e.Property(x => x.Total).HasColumnName("total");
+            e.Property(x => x.Succeeded).HasColumnName("succeeded");
+            e.Property(x => x.Failed).HasColumnName("failed");
+            e.Property(x => x.Skipped).HasColumnName("skipped");
+            e.Property(x => x.Exhausted).HasColumnName("exhausted");
+            e.HasIndex(x => x.StartedAt).IsDescending();
+        });
+
+        modelBuilder.Entity<InternalRefreshRunItemEntity>(e =>
+        {
+            e.ToTable("refresh_run_item");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            e.Property(x => x.RunId).HasColumnName("run_id");
+            e.Property(x => x.ContentKey).HasColumnName("content_key").HasMaxLength(64).IsRequired();
+            e.Property(x => x.Category).HasColumnName("category").HasMaxLength(64).IsRequired();
+            e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.Attempt).HasColumnName("attempt");
+            e.Property(x => x.ErrorCode).HasColumnName("error_code").HasMaxLength(128);
+            e.Property(x => x.DurationMs).HasColumnName("duration_ms");
+            e.Property(x => x.IsExhausted).HasColumnName("is_exhausted");
+            e.HasIndex(x => x.RunId);
+        });
+
         modelBuilder.Entity<InternalEncounterEntity>(e =>
         {
             e.ToTable("encounter");
