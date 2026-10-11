@@ -131,4 +131,27 @@ public sealed class DomainServiceTests
         Assert.Contains("captured_at", columns);
         Assert.Contains("values_json", columns);
     }
+
+    [Fact]
+    public async Task RefreshRunMigrationIsIdempotentAndCreatesRunTables()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<DbContext>().UseSqlite(connection).Options;
+        await using var context = new DbContext(options);
+        var migrationType = typeof(PlayerSnapshot).Assembly.GetType(
+            "NexusKit.Modules.InternalData.Persistence.AddRefreshRunTables",
+            throwOnError: true)!;
+        var migration = Activator.CreateInstance(migrationType)!;
+        var up = migrationType.GetMethod("UpAsync", BindingFlags.Instance | BindingFlags.Public)!;
+
+        await (Task)up.Invoke(migration, new object[] { context, CancellationToken.None })!;
+        await (Task)up.Invoke(migration, new object[] { context, CancellationToken.None })!;
+
+        var tables = await context.Database.SqlQueryRaw<string>(
+                "SELECT name AS Value FROM sqlite_master WHERE type = 'table'")
+            .ToListAsync();
+        Assert.Contains("nexus_internal_refresh_run", tables);
+        Assert.Contains("nexus_internal_refresh_run_item", tables);
+    }
 }
