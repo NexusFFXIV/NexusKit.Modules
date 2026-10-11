@@ -70,4 +70,36 @@ public sealed class DomainServiceTests
         Assert.Equal(501, summary.Succeeded);
         Assert.Equal(500, summary.Items.Count);
     }
+
+    [Fact]
+    public void RefreshMetrics_RecordsOutcomeCountersWithoutPlayerIdentity()
+    {
+        var metrics = new RefreshMetricsCollector();
+        var now = DateTime.UtcNow;
+        metrics.Record(new RefreshOutcome(42, RefreshCategory.Profile,
+            RefreshOutcomeStatus.Succeeded, 1, now, now.AddMilliseconds(12),
+            Array.Empty<RefreshSourceStatus>()));
+        metrics.Record(new RefreshOutcome(43, RefreshCategory.Profile,
+            RefreshOutcomeStatus.Failed, 2, now, now.AddMilliseconds(8),
+            Array.Empty<RefreshSourceStatus>(), "timeout", true));
+        metrics.SetQueueLength(3);
+
+        var snapshot = metrics.Snapshot();
+
+        Assert.Equal(2, snapshot.Attempts);
+        Assert.Equal(1, snapshot.Succeeded);
+        Assert.Equal(1, snapshot.Failed);
+        Assert.Equal(1, snapshot.Exhausted);
+        Assert.Equal(3, snapshot.CurrentQueueLength);
+        Assert.Equal(10, snapshot.AverageDurationMs, precision: 6);
+    }
+
+    [Fact]
+    public void DefaultCategoryPolicyEnablesEveryCategoryIncludingUnknownValues()
+    {
+        var policy = new DefaultRefreshCategoryPolicy();
+
+        foreach (var category in Enum.GetValues<RefreshCategory>())
+            Assert.True(policy.IsEnabled(category));
+    }
 }
