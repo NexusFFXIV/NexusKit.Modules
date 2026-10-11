@@ -69,6 +69,17 @@ internal sealed class InternalDataEntityModule : IEntityModule
             e.HasIndex(x => new { x.ContentId, x.IsRead });
         });
 
+        modelBuilder.Entity<InternalPlayerSnapshotEntity>(e =>
+        {
+            e.ToTable("player_snapshot");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            e.Property(x => x.ContentId).HasColumnName("content_id");
+            e.Property(x => x.CapturedAt).HasColumnName("captured_at");
+            e.Property(x => x.ValuesJson).HasColumnName("values_json").IsRequired();
+            e.HasIndex(x => new { x.ContentId, x.CapturedAt }).IsDescending(false, true);
+        });
+
         modelBuilder.Entity<InternalRefreshQueueEntity>(e =>
         {
             e.ToTable("refresh_queue");

@@ -32,7 +32,24 @@ internal sealed class InternalDataMigrations : IMigrationModule
         new AddEncounterWorldIdColumn(),
         new AddObservedPlayerSearchCommentColumn(),
         new AddRefreshRunTables(),
+        new AddPlayerSnapshotTable(),
     };
+}
+
+internal sealed class AddPlayerSnapshotTable : IMigration
+{
+    public string Id => "20261011_player_snapshots";
+
+    public async Task UpAsync(DbContext ctx, CancellationToken ct)
+    {
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE TABLE IF NOT EXISTS nexus_internal_player_snapshot (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, content_id INTEGER NOT NULL, " +
+            "captured_at TEXT NOT NULL, values_json TEXT NOT NULL);", ct).ConfigureAwait(false);
+        await ctx.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS ix_nexus_internal_player_snapshot_content_captured " +
+            "ON nexus_internal_player_snapshot(content_id, captured_at DESC);", ct).ConfigureAwait(false);
+    }
 }
 
 internal sealed class AddRefreshRunTables : IMigration
