@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NexusKit.Modules.InternalData.Persistence;
+using NexusKit.Modules.InternalData.Refresh;
 using NexusKit.Persistence;
 
 namespace NexusKit.Modules.PlayerEnrichment;
@@ -9,14 +11,19 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     private readonly IPlayerRefreshQueueService mQueue;
     private readonly RefreshMetricsCollector mMetrics;
     private readonly INexusDbContextFactory mDb;
+    private readonly ILogger<RefreshRunSummaryService> mLog;
+    private readonly HashSet<(ulong ContentId, RefreshCategory Category)> mPending = new();
     private RefreshRunSummaryBuilder? mBuilder;
 
     public RefreshRunSummaryService(IPlayerRefreshQueueService queue,
-        RefreshMetricsCollector metrics, INexusDbContextFactory db)
+        RefreshMetricsCollector metrics, INexusDbContextFactory db,
+        ILogger<RefreshRunSummaryService> log)
     {
         mQueue = queue;
         mMetrics = metrics;
         mDb = db;
+        mLog = log;
+        mQueue.Enqueued += OnEnqueued;
         mQueue.OutcomeProduced += Record;
     }
 
@@ -34,6 +41,21 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         // Background refreshes must still be diagnosable when no UI button
         // explicitly started a run; the next explicit Complete closes it.
         (mBuilder ??= new RefreshRunSummaryBuilder()).Add(outcome);
+        mPending.Remove((outcome.ContentId, outcome.Category));
+        if (mPending.Count == 0)
+            _ = CompleteAndPersistSafelyAsync();
+    }
+
+    private void OnEnqueued(ulong contentId, RefreshCategory category)
+    {
+        mBuilder ??= new RefreshRunSummaryBuilder();
+        mPending.Add((contentId, category));
+    }
+
+    private async Task CompleteAndPersistSafelyAsync()
+    {
+        try { await CompleteAsync().ConfigureAwait(false); }
+        catch (Exception ex) { mLog.LogWarning(ex, "Refresh run persistence failed"); }
     }
 
     public RefreshRunSummary Complete()
@@ -95,5 +117,9 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         return await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public void Dispose() => mQueue.OutcomeProduced -= Record;
+    public void Dispose()
+    {
+        mQueue.Enqueued -= OnEnqueued;
+        mQueue.OutcomeProduced -= Record;
+    }
 }
