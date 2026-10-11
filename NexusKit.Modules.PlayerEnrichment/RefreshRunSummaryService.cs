@@ -1,15 +1,22 @@
+using Microsoft.EntityFrameworkCore;
+using NexusKit.Modules.InternalData.Persistence;
+using NexusKit.Persistence;
+
 namespace NexusKit.Modules.PlayerEnrichment;
 
 public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDisposable
 {
     private readonly IPlayerRefreshQueueService mQueue;
     private readonly RefreshMetricsCollector mMetrics;
+    private readonly INexusDbContextFactory mDb;
     private RefreshRunSummaryBuilder? mBuilder;
 
-    public RefreshRunSummaryService(IPlayerRefreshQueueService queue, RefreshMetricsCollector metrics)
+    public RefreshRunSummaryService(IPlayerRefreshQueueService queue,
+        RefreshMetricsCollector metrics, INexusDbContextFactory db)
     {
         mQueue = queue;
         mMetrics = metrics;
+        mDb = db;
         mQueue.OutcomeProduced += Record;
     }
 
@@ -35,8 +42,56 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
         return Latest;
     }
 
+    public async Task<RefreshRunSummary> CompleteAsync(CancellationToken ct = default)
+    {
+        var summary = Complete();
+        await using var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var run = new InternalRefreshRunEntity
+        {
+            StartedAt = summary.StartedAtUtc,
+            CompletedAt = summary.CompletedAtUtc,
+            Total = summary.Total,
+            Succeeded = summary.Succeeded,
+            Failed = summary.Failed,
+            Skipped = summary.Skipped,
+            Exhausted = summary.Exhausted,
+        };
+        ctx.Set<InternalRefreshRunEntity>().Add(run);
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        foreach (var item in summary.Items)
+        {
+            ctx.Set<InternalRefreshRunItemEntity>().Add(new InternalRefreshRunItemEntity
+            {
+                RunId = run.Id,
+                ContentKey = item.ContentKey,
+                Category = item.Category,
+                Status = (byte)item.Status,
+                Attempt = item.Attempt,
+                ErrorCode = item.ErrorCode,
+                DurationMs = (long)item.Duration.TotalMilliseconds,
+                IsExhausted = item.IsExhausted,
+            });
+        }
+        await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+        return summary;
+    }
+
     public string? ExportLatestJson()
         => Latest is null ? null : System.Text.Json.JsonSerializer.Serialize(Latest);
+
+    public async Task<int> PruneAsync(int keep = 20, CancellationToken ct = default)
+    {
+        keep = Math.Clamp(keep, 1, 200);
+        await using var ctx = await mDb.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var old = await ctx.Set<InternalRefreshRunEntity>()
+            .OrderByDescending(x => x.StartedAt)
+            .Skip(keep)
+            .ToListAsync(ct).ConfigureAwait(false);
+        if (old.Count == 0) return 0;
+        ctx.Set<InternalRefreshRunEntity>().RemoveRange(old);
+        return await ctx.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
 
     public void Dispose() => mQueue.OutcomeProduced -= Record;
 }
