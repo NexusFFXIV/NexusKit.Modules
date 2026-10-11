@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NexusKit.Core;
 using NexusKit.Modules.InternalData.Persistence;
 using NexusKit.Modules.InternalData.Refresh;
 using NexusKit.Persistence;
@@ -11,6 +12,7 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     private readonly IPlayerRefreshQueueService mQueue;
     private readonly RefreshMetricsCollector mMetrics;
     private readonly INexusDbContextFactory mDb;
+    private readonly IPluginLifetime mLifetime;
     private readonly ILogger<RefreshRunSummaryService> mLog;
     private readonly object mGate = new();
     private readonly HashSet<(ulong ContentId, RefreshCategory Category)> mPending = new();
@@ -20,14 +22,17 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
 
     public RefreshRunSummaryService(IPlayerRefreshQueueService queue,
         RefreshMetricsCollector metrics, INexusDbContextFactory db,
+        IPluginLifetime lifetime,
         ILogger<RefreshRunSummaryService> log)
     {
         mQueue = queue;
         mMetrics = metrics;
         mDb = db;
+        mLifetime = lifetime;
         mLog = log;
         mQueue.Enqueued += OnEnqueued;
         mQueue.OutcomeProduced += Record;
+        mLifetime.StateChanged += OnLifecycleChanged;
     }
 
     public RefreshRunSummary? Latest { get; private set; }
@@ -92,6 +97,22 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
     {
         try { await CompleteAsync().ConfigureAwait(false); }
         catch (Exception ex) { mLog.LogWarning(ex, "Refresh run persistence failed"); }
+    }
+
+    private void OnLifecycleChanged(PluginLifecycleState state)
+    {
+        if (state != PluginLifecycleState.Stopping) return;
+        lock (mGate)
+        {
+            if (mBuilder is null || mDisposed) return;
+        }
+
+        // Stopping is the documented final-write window: the lifetime token is
+        // still live and DI has not started disposing the database yet. Wait
+        // here so a plugin unload cannot discard an open run in fire-and-forget
+        // work after the token is cancelled.
+        try { CompleteAsync(CancellationToken.None).GetAwaiter().GetResult(); }
+        catch (Exception ex) { mLog.LogWarning(ex, "Refresh run finalization failed during shutdown"); }
     }
 
     public RefreshRunSummary Complete()
@@ -164,13 +185,19 @@ public sealed class RefreshRunSummaryService : IRefreshRunSummaryService, IDispo
 
     public void Dispose()
     {
-        lock (mGate) mDisposed = true;
-        mQueue.Enqueued -= OnEnqueued;
-        mQueue.OutcomeProduced -= Record;
+        mLifetime.StateChanged -= OnLifecycleChanged;
+        var shouldFinalize = false;
         lock (mGate)
         {
-            if (mBuilder is null) return;
+            mDisposed = true;
+            shouldFinalize = mBuilder is not null;
         }
-        _ = CompleteAndPersistSafelyAsync();
+        mQueue.Enqueued -= OnEnqueued;
+        mQueue.OutcomeProduced -= Record;
+        if (shouldFinalize)
+        {
+            try { CompleteAsync(CancellationToken.None).GetAwaiter().GetResult(); }
+            catch (Exception ex) { mLog.LogWarning(ex, "Refresh run finalization failed during dispose"); }
+        }
     }
 }
