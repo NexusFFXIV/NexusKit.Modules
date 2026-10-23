@@ -86,6 +86,9 @@ internal sealed class InternalDataPlayerWatcher : IInternalDataPlayerWatcher, ID
         {
             lock (mLock)
                 return mObserved.Values
+                    // Keep a malformed legacy/runtime entry from taking down
+                    // every UI frame while the in-memory map is being rebuilt.
+                    .OfType<ObservedPlayer>()
                     .OrderByDescending(o => o.LastSeen)
                     .ToList();
         }
